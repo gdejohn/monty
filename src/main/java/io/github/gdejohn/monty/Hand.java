@@ -11,6 +11,7 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
+import static io.github.gdejohn.monty.Card.distinct;
 import static io.github.gdejohn.monty.Card.reverseLowball;
 import static io.github.gdejohn.monty.Hand.Category.FLUSH;
 import static io.github.gdejohn.monty.Hand.Category.FOUR_OF_A_KIND;
@@ -133,14 +134,12 @@ public final class Hand implements Comparable<Hand> {
     private final int value;
 
     private Hand(long cards) {
-        this.cards = cards;
-        this.value = Hand.evaluate(cards);
+        this.cards = distinct(7, cards);
+        this.value = evaluate(cards);
     }
 
     public static Hand evaluate(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
-        var cards = first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack() | sixth.pack() | seventh.pack();
-        Card.count(7, cards);
-        return new Hand(cards);
+        return new Hand(first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack() | sixth.pack() | seventh.pack());
     }
 
     @Override

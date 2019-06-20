@@ -11,12 +11,12 @@ public final class Card implements Comparable<Card> {
     public static final class Board {
         private final long cards;
 
-        private Board(long cards) {
-            this.cards = cards;
+        private Board(int count, long cards) {
+            this.cards = distinct(count, cards);
         }
 
         Board() {
-            this(0L);
+            this(0, 0L);
         }
 
         long cards() {
@@ -28,10 +28,18 @@ public final class Card implements Comparable<Card> {
         private final long cards;
 
         private Pocket(long cards) {
-            this.cards = cards;
+            this.cards = distinct(2, cards);
         }
 
         long cards() {
+            return cards;
+        }
+    }
+
+    static long distinct(int count, long cards) {
+        if (Long.bitCount(cards) != count) {
+            throw new IllegalArgumentException();
+        } else {
             return cards;
         }
     }
@@ -115,12 +123,6 @@ public final class Card implements Comparable<Card> {
         return rank.ordinal() + (suit.ordinal() * 13);
     }
 
-    static void count(int n, long cards) {
-        if (Long.bitCount(cards) != n) {
-            throw new IllegalArgumentException();
-        }
-    }
-
     static Card unpack(long card) {
         return Card.values[Long.numberOfTrailingZeros(card)];
     }
@@ -142,27 +144,19 @@ public final class Card implements Comparable<Card> {
     }
 
     public static Pocket pocket(Card first, Card second) {
-        var cards = first.pack() | second.pack();
-        Card.count(2, cards);
-        return new Pocket(cards);
+        return new Pocket(first.pack() | second.pack());
     }
 
     public static Board board(Card first, Card second, Card third) {
-        var cards = first.pack() | second.pack() | third.pack();
-        Card.count(3, cards);
-        return new Board(cards);
+        return new Board(3, first.pack() | second.pack() | third.pack());
     }
 
     public static Board board(Card first, Card second, Card third, Card fourth) {
-        var cards = first.pack() | second.pack() | third.pack() | fourth.pack();
-        Card.count(4, cards);
-        return new Board(cards);
+        return new Board(4, first.pack() | second.pack() | third.pack() | fourth.pack());
     }
 
     public static Board board(Card first, Card second, Card third, Card fourth, Card fifth) {
-        var cards = first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack();
-        Card.count(5, cards);
-        return new Board(cards);
+        return new Board(5, first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack());
     }
 
     long pack() {
