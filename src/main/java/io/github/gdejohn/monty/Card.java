@@ -8,6 +8,34 @@ import java.util.stream.Stream;
 import static java.util.Comparator.comparingInt;
 
 public final class Card implements Comparable<Card> {
+    public static final class Board {
+        private final long cards;
+
+        private Board(long cards) {
+            this.cards = cards;
+        }
+
+        Board() {
+            this(0L);
+        }
+
+        long cards() {
+            return cards;
+        }
+    }
+
+    public static final class Pocket {
+        private final long cards;
+
+        private Pocket(long cards) {
+            this.cards = cards;
+        }
+
+        long cards() {
+            return cards;
+        }
+    }
+
     public enum Rank {
         TWO("2"),
         THREE("3"),
@@ -111,6 +139,30 @@ public final class Card implements Comparable<Card> {
 
     static Comparator<Card> reverseLowball() {
         return REVERSE_LOWBALL;
+    }
+
+    public static Pocket pocket(Card first, Card second) {
+        var cards = first.pack() | second.pack();
+        Card.count(2, cards);
+        return new Pocket(cards);
+    }
+
+    public static Board board(Card first, Card second, Card third) {
+        var cards = first.pack() | second.pack() | third.pack();
+        Card.count(3, cards);
+        return new Board(cards);
+    }
+
+    public static Board board(Card first, Card second, Card third, Card fourth) {
+        var cards = first.pack() | second.pack() | third.pack() | fourth.pack();
+        Card.count(4, cards);
+        return new Board(cards);
+    }
+
+    public static Board board(Card first, Card second, Card third, Card fourth, Card fifth) {
+        var cards = first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack();
+        Card.count(5, cards);
+        return new Board(cards);
     }
 
     long pack() {
