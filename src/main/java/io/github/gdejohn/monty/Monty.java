@@ -39,7 +39,7 @@ public final class Monty {
         throw new AssertionError("this class is not intended to be instantiated");
     }
 
-    static Stream<Winnings> simulate(SplittableRandom generator, int opponents, long pocket, long board, long estimatedSize) {
+    static Stream<Winnings> simulate(SplittableRandom generator, int opponents, long pocket, long board) {
         class Spliterator implements java.util.Spliterator<Winnings> {
             private final SplittableRandom generator;
 
@@ -135,16 +135,12 @@ public final class Monty {
                 deck[index] = card;
                 cards ^= card;
             }
-            return StreamSupport.stream(new Spliterator(generator, deck, pocket, board, estimatedSize), true);
+            return StreamSupport.stream(new Spliterator(generator, deck, pocket, board, Long.MAX_VALUE), true);
         }
     }
 
-    static Stream<Winnings> simulate(SplittableRandom generator, int opponents, Pocket pocket, Board board) {
-        return simulate(generator, opponents, pocket.cards(), board.cards(), Long.MAX_VALUE);
-    }
-
     public static Stream<Winnings> simulate(int opponents, Pocket pocket, Board board) {
-        return simulate(new SplittableRandom(), opponents, pocket, board);
+        return simulate(new SplittableRandom(), opponents, pocket.cards(), board.cards());
     }
 
     public static Stream<Winnings> simulate(int opponents, Pocket pocket) {
