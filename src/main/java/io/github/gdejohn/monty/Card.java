@@ -6,21 +6,25 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.joining;
 
 public final class Card implements Comparable<Card> {
     public static final class Board {
+        static final Board PRE_FLOP = new Board(0, 0L);
+
         private final long cards;
 
         private Board(int count, long cards) {
             this.cards = distinct(count, cards);
         }
 
-        Board() {
-            this(0, 0L);
-        }
-
         long cards() {
             return cards;
+        }
+
+        @Override
+        public String toString() {
+            return Card.toString(unpack(cards));
         }
     }
 
@@ -34,6 +38,11 @@ public final class Card implements Comparable<Card> {
         long cards() {
             return cards;
         }
+
+        @Override
+        public String toString() {
+            return Card.toString(unpack(cards));
+        }
     }
 
     static long distinct(int count, long cards) {
@@ -42,6 +51,10 @@ public final class Card implements Comparable<Card> {
         } else {
             return cards;
         }
+    }
+
+    static String toString(Stream<Card> cards) {
+        return cards.map(Card::toString).collect(joining(",", "(", ")"));
     }
 
     public enum Rank {
@@ -123,8 +136,12 @@ public final class Card implements Comparable<Card> {
         return rank.ordinal() + (suit.ordinal() * 13);
     }
 
-    static Card unpack(long card) {
-        return Card.values[Long.numberOfTrailingZeros(card)];
+    static Stream<Card> unpack(long cards) {
+        return LongStream.iterate(
+            cards,
+            packed -> packed != 0,
+            packed -> packed & (packed - 1)
+        ).mapToObj(packed -> Card.values[Long.numberOfTrailingZeros(packed)]);
     }
 
     static LongStream combinations() {
@@ -143,10 +160,6 @@ public final class Card implements Comparable<Card> {
         return REVERSE_LOWBALL;
     }
 
-    public static Pocket pocket(Card first, Card second) {
-        return new Pocket(first.pack() | second.pack());
-    }
-
     public static Board board(Card first, Card second, Card third) {
         return new Board(3, first.pack() | second.pack() | third.pack());
     }
@@ -157,6 +170,10 @@ public final class Card implements Comparable<Card> {
 
     public static Board board(Card first, Card second, Card third, Card fourth, Card fifth) {
         return new Board(5, first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack());
+    }
+
+    public static Pocket pocket(Card first, Card second) {
+        return new Pocket(first.pack() | second.pack());
     }
 
     long pack() {

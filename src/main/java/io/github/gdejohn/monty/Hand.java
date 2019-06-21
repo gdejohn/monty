@@ -7,7 +7,6 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
@@ -29,7 +28,6 @@ import static java.util.Comparator.reverseOrder;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.maxBy;
 import static java.util.stream.Collectors.toCollection;
@@ -48,7 +46,7 @@ public final class Hand implements Comparable<Hand> {
             @Override
             Stream<Card> unpack(Hand hand) {
                 var high = Rank.unpack(hand.value);
-                var cards = hand.unpack().collect(
+                var cards = Card.unpack(hand.cards).collect(
                     groupingBy(Card::rank, () -> new EnumMap<>(Rank.class), maxBy(comparing(Card::suit)))
                 ).values().stream().flatMap(Optional::stream);
                 if (high == FIVE) { // wheel
@@ -62,7 +60,7 @@ public final class Hand implements Comparable<Hand> {
         FLUSH(7, 1_277, 4_047_644) {
             @Override
             Stream<Card> unpack(Hand hand) {
-                return hand.flush().sorted(reverseOrder()).limit(5);
+                return flush(hand).sorted(reverseOrder()).limit(5);
             }
         },
 
@@ -75,9 +73,9 @@ public final class Hand implements Comparable<Hand> {
             Stream<Card> unpack(Hand hand) {
                 var high = Rank.unpack(hand.value);
                 if (high == FIVE) { // steel wheel
-                    return hand.flush().sorted(reverseLowball()).dropWhile(card -> card.rank() != high);
+                    return flush(hand).sorted(reverseLowball()).dropWhile(card -> card.rank() != high);
                 } else {
-                    return hand.flush().sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
+                    return flush(hand).sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
                 }
             }
         };
@@ -96,15 +94,26 @@ public final class Hand implements Comparable<Hand> {
             this.hands = hands;
         }
 
+        private static Stream<Card> flush(Hand hand) {
+            return Card.unpack(hand.cards).collect(
+                groupingBy(
+                    Card::suit,
+                    () -> new EnumMap<>(Suit.class),
+                    mapping(Card::rank, toCollection(() -> EnumSet.noneOf(Rank.class))))
+            ).entrySet().stream().max(comparingByValue(comparingInt(Set::size))).stream().flatMap(
+                entry -> entry.getValue().stream().map(rank -> rank.of(entry.getKey()))
+            );
+        }
+
         static Category unpack(int rank) {
             return Category.values[rank >> 26];
         }
 
         Stream<Card> unpack(Hand hand) {
-            var counts = hand.unpack().collect(
+            var counts = Card.unpack(hand.cards).collect(
                 groupingBy(Card::rank, () -> new EnumMap<>(Rank.class), counting())
             );
-            return hand.unpack().sorted(
+            return Card.unpack(hand.cards).sorted(
                 comparing(
                     Card::rank,
                     comparingLong(counts::get)
@@ -113,7 +122,7 @@ public final class Hand implements Comparable<Hand> {
         }
 
         final int pack(int ranks) {
-            return (this.ordinal() << 26) | ranks;
+            return (ordinal() << 26) | ranks;
         }
 
         final int bitCount() {
@@ -160,7 +169,7 @@ public final class Hand implements Comparable<Hand> {
 
     @Override
     public String toString() {
-        return this.cards().map(Card::toString).collect(joining(",", "(", ")"));
+        return Card.toString(cards());
     }
 
     @Override
@@ -173,26 +182,7 @@ public final class Hand implements Comparable<Hand> {
     }
 
     public Stream<Card> cards() {
-        return this.category().unpack(this);
-    }
-
-    private Stream<Card> unpack() {
-        return LongStream.iterate(
-            this.cards,
-            cards -> cards != 0,
-            cards -> cards & (cards - 1)
-        ).mapToObj(Card::unpack);
-    }
-
-    private Stream<Card> flush() {
-        return this.unpack().collect(
-            groupingBy(
-                Card::suit,
-                () -> new EnumMap<>(Suit.class),
-                mapping(Card::rank, toCollection(() -> EnumSet.noneOf(Rank.class))))
-        ).entrySet().stream().max(comparingByValue(comparingInt(Set::size))).stream().flatMap(
-            entry -> entry.getValue().stream().map(rank -> rank.of(entry.getKey()))
-        );
+        return category().unpack(this);
     }
 
     private static int wheel(int ranks) {

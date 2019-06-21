@@ -8,15 +8,32 @@ import java.util.SplittableRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static io.github.gdejohn.monty.Card.unpack;
+import static io.github.gdejohn.monty.Monty.Winnings.pot;
+
 public final class Monty {
     public static final class Winnings {
+        private static final Winnings[] pot = pot();
+
+        private static Winnings[] pot() {
+            var pot = new Winnings[24];
+            pot[0] = new Winnings(0.0d);
+            IntStream.range(1, pot.length).forEach(split -> pot[split] = new Winnings(1.0d / split));
+            return pot;
+        }
+
         private final double share;
 
-        Winnings(double share) {
+        private Winnings(double share) {
             this.share = share;
+        }
+
+        static Winnings pot(int split) {
+            return pot[split];
         }
 
         public double share() {
@@ -24,22 +41,11 @@ public final class Monty {
         }
     }
 
-    private static final Winnings[] winnings = winnings();
-
-    private static Winnings[] winnings() {
-        var winnings = new Winnings[24];
-        winnings[0] = new Winnings(0.0d);
-        for (var split = 1; split < winnings.length; split++) {
-            winnings[split] = new Winnings(1.0d / split);
-        }
-        return winnings;
-    }
-
     private Monty() {
         throw new AssertionError("this class is not intended to be instantiated");
     }
 
-    static Stream<Winnings> simulate(SplittableRandom generator, int opponents, long pocket, long board) {
+    static Stream<Winnings> simulate(SplittableRandom generator, int opponents, Pocket pocket, Board board) {
         class Spliterator implements java.util.Spliterator<Winnings> {
             private final SplittableRandom generator;
 
@@ -49,16 +55,16 @@ public final class Monty {
 
             private final long board;
 
-            private long estimatedSize;
+            private long trials;
 
             private int bound;
 
-            Spliterator(SplittableRandom generator, long[] deck, long pocket, long board, long estimatedSize) {
+            Spliterator(SplittableRandom generator, long[] deck, long pocket, long board, long trials) {
                 this.generator = generator;
                 this.deck = deck;
                 this.pocket = pocket;
                 this.board = board;
-                this.estimatedSize = estimatedSize;
+                this.trials = trials;
             }
 
             private void shuffle() {
@@ -79,25 +85,30 @@ public final class Monty {
 
             @Override
             public boolean tryAdvance(Consumer<? super Winnings> action) {
-                this.shuffle();
-                var board = this.board | deal(deck.length - 45);
-                var value = Hand.evaluate(board | pocket);
-                var split = 1;
-                for (var opponent = 0; opponent < opponents; opponent++) {
-                    switch (Integer.signum(value - Hand.evaluate(board | deal(2)))) {
-                        case 0: split++;
-                        case 1: continue;
+                if (trials == 0) {
+                    return false;
+                } else {
+                    this.shuffle();
+                    var board = this.board | deal(deck.length - 45);
+                    var value = Hand.evaluate(board | pocket);
+                    var split = 1;
+                    for (var opponent = 0; opponent < opponents; opponent++) {
+                        switch (Integer.signum(value - Hand.evaluate(board | deal(2)))) {
+                            case 0: split++;
+                            case 1: continue;
+                        }
+                        split = 0;
+                        break;
                     }
-                    split = 0;
-                    break;
+                    action.accept(pot(split));
+                    trials--;
+                    return true;
                 }
-                action.accept(winnings[split]);
-                return true;
             }
 
             @Override
             public Spliterator trySplit() {
-                if (estimatedSize == 0) {
+                if (trials == 1) {
                     return null;
                 } else {
                     return new Spliterator(
@@ -105,50 +116,60 @@ public final class Monty {
                         Arrays.copyOf(deck, deck.length),
                         pocket,
                         board,
-                        estimatedSize >>>= 1
+                        trials >>>= 1
                     );
                 }
             }
 
             @Override
             public long estimateSize() {
-                return estimatedSize;
+                return trials;
             }
 
             @Override
             public int characteristics() {
-                return IMMUTABLE | NONNULL;
+                return IMMUTABLE | NONNULL | SIZED | SUBSIZED;
             }
         }
 
-        if (opponents < 1) {
-            throw new IllegalArgumentException(String.format("opponents = %d (must be positive)", opponents));
-        } else if (opponents > 22) {
-            throw new IllegalArgumentException(String.format("opponents = %d (must be less than 23)", opponents));
-        } else if ((pocket & board) != 0) {
-            throw new IllegalArgumentException("pocket and board must be disjoint");
+        if (opponents < 1 || opponents > 22) {
+            throw new IllegalArgumentException(
+                String.format("opponents = %d (must be greater than 0 and less than 23)", opponents)
+            );
+        } else if ((pocket.cards() & board.cards()) != 0) {
+            throw new IllegalArgumentException(
+                String.format(
+                    "pocket %s and board %s must be disjoint, but both contain %s",
+                    Card.toString(unpack(pocket.cards())),
+                    Card.toString(unpack(board.cards())),
+                    Card.toString(unpack(pocket.cards() & board.cards()))
+                )
+            );
         } else {
-            var cards = (-1L >>> -52) ^ pocket ^ board;
+            var cards = (-1L >>> -52) ^ pocket.cards() ^ board.cards();
             var deck = new long[Long.bitCount(cards)];
             for (var index = 0; index < deck.length; index++) {
                 var card = cards & -cards;
                 deck[index] = card;
                 cards ^= card;
             }
-            return StreamSupport.stream(new Spliterator(generator, deck, pocket, board, Long.MAX_VALUE), true);
+            var winnings = new Spliterator(generator, deck, pocket.cards(), board.cards(), Long.MAX_VALUE);
+            return StreamSupport.stream(winnings, true);
         }
     }
 
     public static Stream<Winnings> simulate(int opponents, Pocket pocket, Board board) {
-        return simulate(new SplittableRandom(), opponents, pocket.cards(), board.cards());
+        return simulate(new SplittableRandom(), opponents, pocket, board);
     }
 
     public static Stream<Winnings> simulate(int opponents, Pocket pocket) {
-        return simulate(opponents, pocket, new Board());
+        return simulate(opponents, pocket, Board.PRE_FLOP);
     }
 
+    private static final Collector<Winnings, ?, Double> EQUITY = Collectors.averagingDouble(Winnings::share);
+
     public static Collector<Winnings, ?, Double> equity() {
-        return Collectors.averagingDouble(Winnings::share);
+        return EQUITY;
     }
 
     public static Collector<Winnings, ?, Double> expectedValue(double pot, double raise) {
