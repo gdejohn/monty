@@ -1,6 +1,6 @@
-# eevee
+# monty
 
-**eevee** is a Java 11 library for calculating equity and expected value in Texas
+**monty** is a Java 11 library for calculating equity and expected value in Texas
 hold 'em via parallel Monte Carlo simulation.
 
 Example usage:
