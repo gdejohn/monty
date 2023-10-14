@@ -1,17 +1,7 @@
 package io.github.gdejohn.monty;
 
-import io.github.gdejohn.monty.Card.Rank;
-import io.github.gdejohn.monty.Card.Suit;
-
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
-
-import static io.github.gdejohn.monty.Card.Rank.FIVE;
-import static io.github.gdejohn.monty.Card.distinct;
 import static io.github.gdejohn.monty.Card.reverseLowball;
+import static io.github.gdejohn.monty.Card.Rank.FIVE;
 import static io.github.gdejohn.monty.Hand.Category.FLUSH;
 import static io.github.gdejohn.monty.Hand.Category.FOUR_OF_A_KIND;
 import static io.github.gdejohn.monty.Hand.Category.FULL_HOUSE;
@@ -23,14 +13,22 @@ import static io.github.gdejohn.monty.Hand.Category.THREE_OF_A_KIND;
 import static io.github.gdejohn.monty.Hand.Category.TWO_PAIR;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.Comparator.comparingLong;
 import static java.util.Comparator.reverseOrder;
 import static java.util.Map.Entry.comparingByValue;
-import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.maxBy;
 import static java.util.stream.Collectors.toCollection;
+
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
+
+import io.github.gdejohn.monty.Card.Rank;
+import io.github.gdejohn.monty.Card.Suit;
 
 public final class Hand implements Comparable<Hand> {
     public enum Category {
@@ -38,16 +36,27 @@ public final class Hand implements Comparable<Hand> {
 
         ONE_PAIR(5, 1_470, 58_627_800),
 
-        TWO_PAIR(4, 763, 31_433_400),
+        TWO_PAIR(4, 763, 31_433_400) {
+            @Override
+            Stream<Card> cards(Hand hand) {
+                var pairs = Category.unpack(hand).limit(4);
+                var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
+                return Stream.concat(pairs, kicker);
+            }
+        },
 
         THREE_OF_A_KIND(5, 575, 6_461_620),
 
         STRAIGHT(2, 10, 6_180_020) {
             @Override
-            Stream<Card> unpack(Hand hand) {
-                var high = Rank.unpack(hand.value);
+            Stream<Card> cards(Hand hand) {
+                var high = Rank.unpack(hand.evaluate());
                 var cards = Card.unpack(hand.cards).collect(
-                    groupingBy(Card::rank, () -> new EnumMap<>(Rank.class), maxBy(comparing(Card::suit)))
+                    groupingBy(
+                        Card::rank,
+                        () -> new EnumMap<>(Rank.class),
+                        maxBy(comparing(Card::suit))
+                    )
                 ).values().stream().flatMap(Optional::stream);
                 if (high == FIVE) { // wheel
                     return cards.sorted(reverseLowball()).dropWhile(card -> card.rank() != high);
@@ -59,28 +68,37 @@ public final class Hand implements Comparable<Hand> {
 
         FLUSH(7, 1_277, 4_047_644) {
             @Override
-            Stream<Card> unpack(Hand hand) {
-                return flush(hand).sorted(reverseOrder()).limit(5);
+            Stream<Card> cards(Hand hand) {
+                return flush(hand, reverseOrder()).limit(5);
             }
         },
 
         FULL_HOUSE(4, 156, 3_473_184),
 
-        FOUR_OF_A_KIND(5, 156, 224_848),
+        FOUR_OF_A_KIND(5, 156, 224_848) {
+            @Override
+            Stream<Card> cards(Hand hand) {
+                var quads = Category.unpack(hand).limit(4);
+                var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
+                return Stream.concat(quads, kicker);
+            }
+        },
 
         STRAIGHT_FLUSH(2, 10, 41_584) {
             @Override
-            Stream<Card> unpack(Hand hand) {
-                var high = Rank.unpack(hand.value);
+            Stream<Card> cards(Hand hand) {
+                var high = Rank.unpack(hand.evaluate());
                 if (high == FIVE) { // steel wheel
-                    return flush(hand).sorted(reverseLowball()).dropWhile(card -> card.rank() != high);
+                    return flush(hand, reverseLowball()).dropWhile(card -> card.rank() != high);
                 } else {
-                    return flush(hand).sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
+                    return flush(hand, reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
                 }
             }
         };
 
-        private static Category[] values = Category.values();
+        private static final int SHIFT = 26;
+
+        private static final Category[] values = Category.values();
 
         private final int bitCount;
 
@@ -94,35 +112,42 @@ public final class Hand implements Comparable<Hand> {
             this.hands = hands;
         }
 
-        private static Stream<Card> flush(Hand hand) {
+        private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
             return Card.unpack(hand.cards).collect(
                 groupingBy(
                     Card::suit,
                     () -> new EnumMap<>(Suit.class),
-                    mapping(Card::rank, toCollection(() -> EnumSet.noneOf(Rank.class))))
-            ).entrySet().stream().max(comparingByValue(comparingInt(Set::size))).stream().flatMap(
-                entry -> entry.getValue().stream().map(rank -> rank.of(entry.getKey()))
-            );
+                    toCollection(() -> new TreeSet<>(order))
+                )
+            ).entrySet().stream().max(
+                comparingByValue(comparingInt(Set::size))
+            ).stream().map(Entry::getValue).flatMap(Set::stream);
         }
 
-        static Category unpack(int rank) {
-            return Category.values[rank >> 26];
+        static Category unpack(int value) {
+            return Category.values[value >>> Category.SHIFT];
         }
 
-        Stream<Card> unpack(Hand hand) {
-            var counts = Card.unpack(hand.cards).collect(
-                groupingBy(Card::rank, () -> new EnumMap<>(Rank.class), counting())
-            );
-            return Card.unpack(hand.cards).sorted(
-                comparing(
+        Stream<Card> cards(Hand hand) {
+            return Category.unpack(hand).limit(5);
+        }
+
+        static Stream<Card> unpack(Hand hand) {
+            return Card.unpack(hand.cards).collect(
+                groupingBy(
                     Card::rank,
-                    comparingLong(counts::get)
-                ).thenComparing(Card::rank).reversed()
-            ).limit(5);
+                    () -> new EnumMap<>(Rank.class),
+                    toCollection(() -> new TreeSet<>(comparing(Card::suit).reversed()))
+                )
+            ).entrySet().stream().sorted(
+                comparingInt(
+                    (Entry<Rank, TreeSet<Card>> entry) -> entry.getValue().size()
+                ).thenComparing(Entry::getKey).reversed()
+            ).map(Entry::getValue).flatMap(Set::stream);
         }
 
-        final int pack(int ranks) {
-            return (ordinal() << 26) | ranks;
+        final int pack(long ranks) {
+            return (this.ordinal() << 26) | (int) ranks;
         }
 
         final int bitCount() {
@@ -138,33 +163,184 @@ public final class Hand implements Comparable<Hand> {
         }
     }
 
-    private final long cards;
+    long cards;
 
-    private final int value;
+    int ranks;
 
-    private Hand(long cards) {
-        this.cards = distinct(7, cards);
-        this.value = evaluate(cards);
+    long rankCounts;
+    
+    int suitCounts;
+
+    Hand() {
+        this(0L, 0, 0L, 0);
     }
 
-    public static Hand evaluate(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
-        return new Hand(first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack() | sixth.pack() | seventh.pack());
+    Hand(Card... cards) {
+        this(0L, 0, 0L, 0);
+        for (var card : cards) {
+            this.deal(Monty.pack(card.ordinal()));
+        }
+    }
+
+    Hand(long[] cards) {
+        this(0L, 0, 0L, 0);
+        for (var card : cards) {
+            this.deal(card);
+        }
+    }
+
+    Hand(long cards, int ranks, long rankCounts, int suitCounts) {
+        this.cards = cards;
+        this.ranks = ranks;
+        this.rankCounts = rankCounts;
+        this.suitCounts = suitCounts;
+    }
+
+    Hand copy() {
+        return new Hand(this.cards, this.ranks, this.rankCounts, this.suitCounts);
+    }
+
+    void deal(long card) {
+        this.cards |= card & Card.MASK;
+        var rank = (card & Rank.MASK) >>> Rank.SHIFT;
+        this.ranks |= 1 << rank;
+        var rankCount = this.rankCounts & (Rank.COUNTS << rank);
+        this.rankCounts ^= Long.max(1L << rank, rankCount | (rankCount << 13));
+        var suit = (card & Suit.MASK) >>> Suit.SHIFT;
+        var suitCount = this.suitCounts & (Suit.COUNTS << suit);
+        this.suitCounts ^= Integer.max(1 << suit, suitCount | (suitCount << 4));
+    }
+
+    public int evaluate() {
+        var count = Integer.bitCount(ranks);
+        if (count > 4) {
+            if (suitCounts > 1 << 16) { // flush
+                var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
+                var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
+                count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4
+                var straightFlush = straight(flush, count);
+                if (straightFlush != 0) {
+                    return STRAIGHT_FLUSH.pack(straightFlush);
+                } else {
+                    return FLUSH.pack(select(flush, count - 5));
+                }
+            } else {
+                var straight = straight(ranks, count);
+                if (straight != 0) {
+                    return STRAIGHT.pack(straight);
+                } else if (count > 5) {
+                    if (count == 6) { // 2-1-1-1-1-1
+                        var pair = rankCounts >>> 13;
+                        return ONE_PAIR.pack((pair << 13) | select(ranks ^ pair, 2));
+                    } else { // 1-1-1-1-1-1-1
+                        return HIGH_CARD.pack(select(ranks, 2));
+                    }
+                } else if (rankCounts < 1L << 26) { // 2-2-1-1-1
+                    var pairs = rankCounts >> 13;
+                    return TWO_PAIR.pack((pairs << 13) | select(ranks ^ pairs, 2));
+                } else { // 3-1-1-1-1
+                    var trips = rankCounts >>> 26;
+                    return THREE_OF_A_KIND.pack((trips << 13) | select(ranks ^ trips, 2));
+                }
+            }
+        } else if (rankCounts < 1L << 26) { // 2-2-2-1
+            var pairs = select(rankCounts >>> 13, 1);
+            return TWO_PAIR.pack((pairs << 13) | select(ranks ^ pairs, 1));
+        } else if (rankCounts < 1L << 39) { // 3-3-1, 3-2-2, 3-2-1-1
+            var fullHouse = select(rankCounts, count - 2) >>> 13;
+            var pair = fullHouse & -fullHouse;
+            return FULL_HOUSE.pack((fullHouse ^ pair) | (pair >>> 13) | (pair & (-1 >>> -13)));
+        } else { // 4-3, 4-2-1, 4-1-1-1
+            var quads = rankCounts >>> 39;
+            return FOUR_OF_A_KIND.pack((quads << 13) | select(ranks ^ quads, count - 2));
+        }
+    }
+
+    int evaluateFive() {
+        var count = Integer.bitCount(ranks);
+        if (count > 3) {
+            if (count == 4) { // 2-1-1-1
+                return ONE_PAIR.pack(rankCounts);
+            } else if (suitCounts > 1 << 16) { // flush
+                var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
+                var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
+                var straightFlush = straight(flush, 5);
+                if (straightFlush != 0) {
+                    return STRAIGHT_FLUSH.pack(straightFlush);
+                } else {
+                    return FLUSH.pack(flush);
+                }
+            } else {
+                var straight = straight(ranks, 5);
+                if (straight != 0) {
+                    return STRAIGHT.pack(straight);
+                } else {
+                    return HIGH_CARD.pack(rankCounts);
+                }
+            }
+        } else if (count == 3) {
+            if (rankCounts < 1L << 26) { // 2-2-1
+                return TWO_PAIR.pack(rankCounts);
+            } else { // 3-1-1
+                var trips = rankCounts >>> 26;
+                return THREE_OF_A_KIND.pack((trips << 13) | (ranks ^ trips));
+            }
+        } else if (rankCounts < 1L << 39) { // 3-2
+            return FULL_HOUSE.pack(rankCounts >>> 13);
+        } else { // 4-1
+            var quads = rankCounts >>> 39;
+            return FOUR_OF_A_KIND.pack((quads << 13) | (ranks ^ quads));
+        }
+    }
+
+    /**
+     * Check for a straight.
+     *
+     * @param ranks the ranks to check
+     * @param count the number of distinct ranks
+     *
+     * @return the high rank of the straight, or {@code 0} if there is no straight
+     */
+    static int straight(int ranks, int count) {
+        var wheel = ~((ranks << 1) | (ranks >>> 12));
+        wheel = ((wheel & -wheel) >>> 5) << 3;
+        if (wheel != 0) {
+            return wheel;
+        } else while (true) {
+            var high = 31 - Integer.numberOfLeadingZeros(ranks);
+            var straight = ~(ranks >>> (high - 4));
+            straight = ((straight & -straight) >>> 5) << high;
+            if (straight != 0  || --count < 5) {
+                return straight;
+            } else {
+                ranks ^= 1 << high; // clear highest rank
+            }
+        }
+    }
+
+    /**
+     * Select all bits except for the {@code n} least significant bits.
+     *
+     * @param bits the bits to select from
+     * @param n the number of low bits to clear
+     * 
+     * @return the selected bits
+     */
+    static long select(long bits, int n) {
+        while (n-- > 0) {
+            bits &= bits - 1;
+        }
+        return bits;
     }
 
     @Override
     public boolean equals(Object object) {
-        if (this == object) {
-            return true;
-        } else if (object instanceof Hand) {
-            return value == ((Hand) object).value;
-        } else {
-            return false;
-        }
+        return object instanceof Hand that && this.evaluate() == that.evaluate();
     }
 
     @Override
     public int hashCode() {
-        return value;
+        return this.evaluate();
     }
 
     @Override
@@ -174,100 +350,14 @@ public final class Hand implements Comparable<Hand> {
 
     @Override
     public int compareTo(Hand hand) {
-        return Integer.compare(value, hand.value);
+        return Integer.compare(this.evaluate(), hand.evaluate());
     }
 
     public Category category() {
-        return Category.unpack(value);
+        return Category.unpack(this.evaluate());
     }
 
     public Stream<Card> cards() {
-        return category().unpack(this);
-    }
-
-    private static int wheel(int ranks) {
-        var wheel = ~((ranks << 1) | (ranks >>> 12));
-        return ((wheel & -wheel) >>> 5) << 3;
-    }
-
-    private static int straight(int ranks, int high) {
-        var straight = ~(ranks >>> (high - 4));
-        return ((straight & -straight) >>> 5) << high;
-    }
-
-    static int evaluate(long hand) {
-        var kickers = 0;
-        var counts = 0L; // bit vector multiset
-        for (var i = 0; i < 4; i++) { // for each suit
-            var ranks = (int) (hand >>> (i * 13)) & (-1 >>> -13); // extract ranks for current suit
-            var flush = ranks;
-            var bitCount = Integer.bitCount(ranks);
-            if (bitCount >= 5) {
-                var wheel = wheel(ranks);
-                if (wheel != 0) {
-                    return STRAIGHT_FLUSH.pack(wheel);
-                } else while (true) {
-                    var high = 31 - Integer.numberOfLeadingZeros(ranks);
-                    var straight = straight(ranks, high);
-                    if (straight != 0) {
-                        return STRAIGHT_FLUSH.pack(straight);
-                    } else if (bitCount == 5) {
-                        return FLUSH.pack(flush);
-                    } else {
-                        ranks ^= 1 << high; // clear the most significant bit
-                        flush &= flush - 1; // clear the least significant bit
-                        bitCount--;
-                    }
-                }
-            }
-            kickers |= ranks;
-            while (bitCount > 0) {
-                var rank = Integer.numberOfTrailingZeros(ranks);
-                var count = (((1L << 26) | (1L << 13) | 1L) << rank) & counts; // extract multiplicity
-                counts ^= Long.max(1L << rank, count | (count << 13)); // increment multiplicity
-                ranks &= ranks - 1; // clear the least significant bit
-                bitCount--;
-            }
-        }
-        var ranks = kickers;
-        var bitCount = Integer.bitCount(ranks);
-        if (bitCount >= 5) {
-            var wheel = wheel(ranks);
-            if (wheel != 0) {
-                return STRAIGHT.pack(wheel);
-            } else while (true) {
-                var high = 31 - Integer.numberOfLeadingZeros(ranks);
-                var straight = straight(ranks, high);
-                if (straight != 0) {
-                    return STRAIGHT.pack(straight);
-                } else if (bitCount == 5) {
-                    break;
-                } else {
-                    ranks ^= 1 << high; // clear the most significant bit
-                    bitCount--;
-                }
-            }
-        }
-        var count = 63 - Long.numberOfLeadingZeros(counts);
-        var firstCount = count / 13;
-        var first = count % 13;
-        count = 63 - Long.numberOfLeadingZeros(counts ^ (1L << count));
-        var secondCount = count / 13;
-        var second = count % 13;
-        if (firstCount == 3) {
-            return FOUR_OF_A_KIND.pack((1 << (first + 13)) | (1 << second));
-        } else if (secondCount == 0) {
-            if (firstCount == 0) {
-                return HIGH_CARD.pack((kickers &= kickers - 1) & (kickers - 1));
-            } else {
-                kickers ^= ((1 << 13) + 1) << first;
-                return (firstCount == 1 ? ONE_PAIR : THREE_OF_A_KIND).pack((kickers &= kickers - 1) & (kickers - 1));
-            }
-        } else if (firstCount == 1) {
-            var third = 31 - Integer.numberOfLeadingZeros(kickers ^ (1 << first) ^ (1 << second));
-            return TWO_PAIR.pack((((1 << first) | (1 << second)) << 13) | (1 << third));
-        } else {
-            return FULL_HOUSE.pack((1 << (first + 13)) | (1 << second));
-        }
+        return category().cards(this);
     }
 }

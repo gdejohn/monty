@@ -8,40 +8,39 @@ import java.util.stream.Stream;
 import static java.util.Comparator.comparingInt;
 import static java.util.stream.Collectors.joining;
 
+import java.util.Arrays;
+
 public final class Card implements Comparable<Card> {
-    public static final class Board {
-        static final Board PRE_FLOP = new Board(0, 0L);
+    static sealed abstract class Cards permits Board, Pocket {
+        final long[] cards;
 
-        private final long cards;
-
-        private Board(int count, long cards) {
-            this.cards = distinct(count, cards);
+        protected Cards(Card[] cards) {
+            this.cards = Arrays.stream(cards).mapToLong(
+                card -> Monty.pack(card.ordinal())
+            ).toArray();
+            distinct(cards.length, this.mask());
         }
 
-        long cards() {
-            return cards;
-        }
-
-        @Override
-        public String toString() {
-            return Card.toString(unpack(cards));
+        long mask() {
+            var mask = 0L;
+            for (var card : cards) {
+                mask |= card & Card.MASK;
+            }
+            return mask;
         }
     }
 
-    public static final class Pocket {
-        private final long cards;
+    public static final class Board extends Cards {
+        static final Board PRE_FLOP = new Board();
 
-        private Pocket(long cards) {
-            this.cards = distinct(2, cards);
+        private Board(Card... cards) {
+            super(cards);
         }
+    }
 
-        long cards() {
-            return cards;
-        }
-
-        @Override
-        public String toString() {
-            return Card.toString(unpack(cards));
+    public static final class Pocket extends Cards {
+        private Pocket(Card... cards) {
+            super(cards);
         }
     }
 
@@ -72,6 +71,12 @@ public final class Card implements Comparable<Card> {
         KING("K"),
         ACE("A");
 
+        static final long MASK = 0b1111L << 52;
+
+        static final int SHIFT = 52;
+
+        static final long COUNTS = 0b0000000000001_0000000000001_0000000000001L;
+
         private static final Rank[] values = Rank.values();
 
         private final String string;
@@ -100,6 +105,12 @@ public final class Card implements Comparable<Card> {
         HEARTS("♥"),
         SPADES("♠");
 
+        static final long MASK = 0b11L << 56;
+
+        static final int SHIFT = 56;
+
+        static final int COUNTS = 0b0001_0001_0001_0001_0001_0001;
+
         private final String string;
 
         Suit(String string) {
@@ -119,6 +130,8 @@ public final class Card implements Comparable<Card> {
     private static final Comparator<Card> REVERSE_LOWBALL = comparingInt(card -> -(card.rank.ordinal() + 1) % 13);
 
     private static final Card[] values = EnumSet.allOf(Suit.class).stream().flatMap(Suit::cards).toArray(Card[]::new);
+
+    static final long MASK = -1L >>> -52;
 
     private final Rank rank;
 
@@ -144,40 +157,28 @@ public final class Card implements Comparable<Card> {
         ).mapToObj(packed -> Card.values[Long.numberOfTrailingZeros(packed)]);
     }
 
-    static LongStream combinations() {
-        return LongStream.iterate(
-            -1L >>> -7,
-            cards -> cards < (1L << 52),
-            cards -> { // Gosper's hack
-                var x = cards & -cards;
-                var y = cards + x;
-                return y | (((y ^ cards) >> 2) / x);
-            }
-        );
-    }
-
     static Comparator<Card> reverseLowball() {
         return REVERSE_LOWBALL;
     }
 
     public static Board board(Card first, Card second, Card third) {
-        return new Board(3, first.pack() | second.pack() | third.pack());
+        return new Board(first, second, third);
     }
 
     public static Board board(Card first, Card second, Card third, Card fourth) {
-        return new Board(4, first.pack() | second.pack() | third.pack() | fourth.pack());
+        return new Board(first, second, third, fourth);
     }
 
     public static Board board(Card first, Card second, Card third, Card fourth, Card fifth) {
-        return new Board(5, first.pack() | second.pack() | third.pack() | fourth.pack() | fifth.pack());
+        return new Board(first, second, third, fourth, fifth);
     }
 
     public static Pocket pocket(Card first, Card second) {
-        return new Pocket(first.pack() | second.pack());
+        return new Pocket(first, second);
     }
 
-    long pack() {
-        return 1L << Card.ordinal(rank, suit);
+    int ordinal() {
+        return Card.ordinal(rank, suit);
     }
 
     public Rank rank() {
