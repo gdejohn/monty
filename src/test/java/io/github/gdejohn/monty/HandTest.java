@@ -1,6 +1,6 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Card.distinct;
+import static io.github.gdejohn.monty.Card.Cards.distinct;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
@@ -27,124 +27,88 @@ import static io.github.gdejohn.monty.Hand.Category.STRAIGHT;
 import static io.github.gdejohn.monty.Hand.Category.STRAIGHT_FLUSH;
 import static io.github.gdejohn.monty.Hand.Category.THREE_OF_A_KIND;
 import static io.github.gdejohn.monty.Hand.Category.TWO_PAIR;
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.IntStream.range;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
 import io.github.gdejohn.monty.Hand.Category;
 
 class HandTest {
-    // private static Stream<Hand> hands() {
-    //     return range(0, 48).boxed().flatMap(
-    //         a -> range(a + 1, 49).boxed().flatMap(
-    //             b -> range(b + 1, 50).boxed().flatMap(
-    //                 c -> range(c + 1, 51).boxed().flatMap(
-    //                     d -> range(d + 1, 52).mapToObj(
-    //                         e -> evaluate(cards[a], cards[b], cards[c], cards[d], cards[e])
-    //                     )
-    //                 )
-    //             )
-    //         )
-    //     );
-    // }
+    private static final Card[] deck = Card.deck().toArray(Card[]::new);
 
-    @Test
-    void equivalenceClasses() {
-        var deck = new long[52];
-        for (var card = 0; card < 52; card++) {
-            var rank = card % 13L;
-            var suit = card / 13L;
-            deck[card] = (1L << card) | (rank << 52) | (suit << 56);
-        }
-        var partial = new Hand[7];
-        Arrays.setAll(partial, i -> new Hand());
-        var classes = new EnumMap<Category, Map<Integer, Integer>>(Category.class);
-        for (var a = 0; a < 46; a++) {
-            reset(partial[0]).deal(deck[a]);
-            for (var b = a + 1; b < 47; b++) {
-                copy(partial[1], partial[0]).deal(deck[b]);
-                for (var c = b + 1; c < 48; c++) {
-                    copy(partial[2], partial[1]).deal(deck[c]);
-                    for (var d = c + 1; d < 49; d++) {
-                        copy(partial[3], partial[2]).deal(deck[d]);
-                        for (var e = d + 1; e < 50; e++) {
-                            copy(partial[4], partial[3]).deal(deck[e]);
-                            for (var f = e + 1; f < 51; f++) {
-                                copy(partial[5], partial[4]).deal(deck[f]);
-                                for (var g = f + 1; g < 52; g++) {
-                                    copy(partial[6], partial[5]).deal(deck[g]);
-                                    var value = partial[6].evaluate();
-                                    var category = Category.unpack(value);
-                                    assertThat(Integer.bitCount(value)).isEqualTo(category.bitCount());
-                                    classes.computeIfAbsent(
-                                        category,
-                                        key -> HashMap.newHashMap(key.classes())
-                                    ).merge(value, 1, Integer::sum);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        var categories = EnumSet.allOf(Category.class);
-        assertThat(classes.size()).isEqualTo(categories.size());
-        categories.forEach(
-            category -> {
-                var hands = classes.get(category);
-                assertThat(hands.size()).isEqualTo(category.classes());
-                assertThat(hands.values().stream().mapToInt(Integer::intValue).sum()).isEqualTo(category.hands());
-            }
-        );
-    }
-
-    static Hand reset(Hand hand) {
-        hand.cards = 0L;
-        hand.ranks = 0;
-        hand.rankCounts = 0L;
-        hand.suitCounts = 0;
+    private static Hand hand(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
+        var hand = Hand.of(first, second, third, fourth, fifth, sixth, seventh);
+        distinct(7, hand.cards);
         return hand;
     }
 
-    static Hand copy(Hand to, Hand from) {
-        to.cards = from.cards;
-        to.ranks = from.ranks;
-        to.rankCounts = from.rankCounts;
-        to.suitCounts = from.suitCounts;
-        return to;
+    private static Stream<Hand> hands() {
+        return range(0, 46).boxed().flatMap(
+            a -> range(a + 1, 47).boxed().flatMap(
+                b -> range(b + 1, 48).boxed().flatMap(
+                    c -> range(c + 1, 49).boxed().flatMap(
+                        d -> range(d + 1, 50).boxed().flatMap(
+                            e -> range(e + 1, 51).boxed().flatMap(
+                                f -> range(f + 1, 52).mapToObj(
+                                    g -> hand(deck[a], deck[b], deck[c], deck[d], deck[e], deck[f], deck[g])
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    @Test
+    void equivalenceClasses() {
+        var classes = hands().collect(
+            groupingBy(
+                Hand::category,
+                groupingBy(
+                    Hand::evaluate,
+                    counting()
+                )
+            )
+        );
+        var categories = EnumSet.allOf(Category.class);
+        assertThat(classes.keySet().size()).isEqualTo(categories.size());
+        for (var category : categories) {
+            var hands = classes.get(category);
+            for (var hand : hands.keySet()) {
+                assertThat(Integer.bitCount(hand)).isEqualTo(category.bitCount());
+            }
+            assertThat(hands.size()).isEqualTo(category.classes());
+            assertThat(
+                hands.values().stream().mapToInt(Math::toIntExact).sum()
+            ).isEqualTo(category.hands());
+        }
     }
 
     @Test
     void benchmark() {
         var blackhole = 0;
-        var deck = new long[52];
-        for (var card = 0; card < 52; card++) {
-            var rank = card % 13L;
-            var suit = card / 13L;
-            deck[card] = (1L << card) | (rank << 52) | (suit << 56);
-        }
         var partial = new Hand[7];
-        Arrays.setAll(partial, i -> new Hand());
         for (var a = 0; a < 46; a++) {
-            reset(partial[0]).deal(deck[a]);
+            partial[0] = new Hand().deal(deck[a]);
             for (var b = a + 1; b < 47; b++) {
-                copy(partial[1], partial[0]).deal(deck[b]);
+                partial[1] = partial[0].deal(deck[b]);
                 for (var c = b + 1; c < 48; c++) {
-                    copy(partial[2], partial[1]).deal(deck[c]);
+                    partial[2] = partial[1].deal(deck[c]);
                     for (var d = c + 1; d < 49; d++) {
-                        copy(partial[3], partial[2]).deal(deck[d]);
+                        partial[3] = partial[2].deal(deck[d]);
                         for (var e = d + 1; e < 50; e++) {
-                            copy(partial[4], partial[3]).deal(deck[e]);
+                            partial[4] = partial[3].deal(deck[e]);
                             for (var f = e + 1; f < 51; f++) {
-                                copy(partial[5], partial[4]).deal(deck[f]);
+                                partial[5] = partial[4].deal(deck[f]);
                                 for (var g = f + 1; g < 52; g++) {
-                                    copy(partial[6], partial[5]).deal(deck[g]);
+                                    partial[6] = partial[5].deal(deck[g]);
                                     blackhole |= partial[6].evaluate();
                                 }
                             }
@@ -154,12 +118,6 @@ class HandTest {
             }
         }
         assertThat(blackhole != 0);
-    }
-
-    private static Hand hand(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
-        var hand = new Hand(first, second, third, fourth, fifth, sixth, seventh);
-        distinct(7, hand.cards);
-        return hand;
     }
 
     @Test

@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
+import io.github.gdejohn.monty.Card.Cards;
 import io.github.gdejohn.monty.Card.Rank;
 import io.github.gdejohn.monty.Card.Suit;
 
@@ -51,7 +52,7 @@ public final class Hand implements Comparable<Hand> {
             @Override
             Stream<Card> cards(Hand hand) {
                 var high = Rank.unpack(hand.evaluate());
-                var cards = Card.unpack(hand.cards).collect(
+                var cards = Cards.unpack(hand.cards).collect(
                     groupingBy(
                         Card::rank,
                         () -> new EnumMap<>(Rank.class),
@@ -113,7 +114,7 @@ public final class Hand implements Comparable<Hand> {
         }
 
         private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
-            return Card.unpack(hand.cards).collect(
+            return Cards.unpack(hand.cards).collect(
                 groupingBy(
                     Card::suit,
                     () -> new EnumMap<>(Suit.class),
@@ -133,7 +134,7 @@ public final class Hand implements Comparable<Hand> {
         }
 
         static Stream<Card> unpack(Hand hand) {
-            return Card.unpack(hand.cards).collect(
+            return Cards.unpack(hand.cards).collect(
                 groupingBy(
                     Card::rank,
                     () -> new EnumMap<>(Rank.class),
@@ -163,31 +164,13 @@ public final class Hand implements Comparable<Hand> {
         }
     }
 
-    long cards;
+    final long cards;
 
-    int ranks;
+    final int ranks;
 
-    long rankCounts;
+    final long rankCounts;
     
-    int suitCounts;
-
-    Hand() {
-        this(0L, 0, 0L, 0);
-    }
-
-    Hand(Card... cards) {
-        this(0L, 0, 0L, 0);
-        for (var card : cards) {
-            this.deal(Monty.pack(card.ordinal()));
-        }
-    }
-
-    Hand(long[] cards) {
-        this(0L, 0, 0L, 0);
-        for (var card : cards) {
-            this.deal(card);
-        }
-    }
+    final int suitCounts;
 
     Hand(long cards, int ranks, long rankCounts, int suitCounts) {
         this.cards = cards;
@@ -196,19 +179,29 @@ public final class Hand implements Comparable<Hand> {
         this.suitCounts = suitCounts;
     }
 
-    Hand copy() {
-        return new Hand(this.cards, this.ranks, this.rankCounts, this.suitCounts);
+    Hand() {
+        this(0L, 0, 0L, 0);
     }
 
-    void deal(long card) {
-        this.cards |= card & Card.MASK;
-        var rank = (card & Rank.MASK) >>> Rank.SHIFT;
-        this.ranks |= 1 << rank;
-        var rankCount = this.rankCounts & (Rank.COUNTS << rank);
-        this.rankCounts ^= Long.max(1L << rank, rankCount | (rankCount << 13));
-        var suit = (card & Suit.MASK) >>> Suit.SHIFT;
-        var suitCount = this.suitCounts & (Suit.COUNTS << suit);
-        this.suitCounts ^= Integer.max(1 << suit, suitCount | (suitCount << 4));
+    static Hand of(Card... cards) {
+        var hand = new Hand();
+        for (var card : cards) {
+            hand = hand.deal(card);
+        }
+        return hand;
+    }
+
+    Hand deal(Card card) {
+        var rank = card.rank().ordinal();
+        var suit = card.suit().ordinal();
+        var rankCount = rankCounts & (Rank.COUNTS << rank);
+        var suitCount = suitCounts & (Suit.COUNTS << suit);
+        return new Hand(
+            cards | card.pack(),
+            ranks | (1 << rank),
+            rankCounts ^ Long.max(1L << rank, rankCount | (rankCount << 13)),
+            suitCounts ^ Integer.max(1 << suit, suitCount | (suitCount << 4))
+        );
     }
 
     public int evaluate() {
@@ -253,43 +246,6 @@ public final class Hand implements Comparable<Hand> {
         } else { // 4-3, 4-2-1, 4-1-1-1
             var quads = rankCounts >>> 39;
             return FOUR_OF_A_KIND.pack((quads << 13) | select(ranks ^ quads, count - 2));
-        }
-    }
-
-    int evaluateFive() {
-        var count = Integer.bitCount(ranks);
-        if (count > 3) {
-            if (count == 4) { // 2-1-1-1
-                return ONE_PAIR.pack(rankCounts);
-            } else if (suitCounts > 1 << 16) { // flush
-                var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
-                var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
-                var straightFlush = straight(flush, 5);
-                if (straightFlush != 0) {
-                    return STRAIGHT_FLUSH.pack(straightFlush);
-                } else {
-                    return FLUSH.pack(flush);
-                }
-            } else {
-                var straight = straight(ranks, 5);
-                if (straight != 0) {
-                    return STRAIGHT.pack(straight);
-                } else {
-                    return HIGH_CARD.pack(rankCounts);
-                }
-            }
-        } else if (count == 3) {
-            if (rankCounts < 1L << 26) { // 2-2-1
-                return TWO_PAIR.pack(rankCounts);
-            } else { // 3-1-1
-                var trips = rankCounts >>> 26;
-                return THREE_OF_A_KIND.pack((trips << 13) | (ranks ^ trips));
-            }
-        } else if (rankCounts < 1L << 39) { // 3-2
-            return FULL_HOUSE.pack(rankCounts >>> 13);
-        } else { // 4-1
-            var quads = rankCounts >>> 39;
-            return FOUR_OF_A_KIND.pack((quads << 13) | (ranks ^ quads));
         }
     }
 
@@ -340,12 +296,12 @@ public final class Hand implements Comparable<Hand> {
 
     @Override
     public int hashCode() {
-        return this.evaluate();
+        return evaluate();
     }
 
     @Override
     public String toString() {
-        return Card.toString(cards());
+        return Cards.toString(cards());
     }
 
     @Override
