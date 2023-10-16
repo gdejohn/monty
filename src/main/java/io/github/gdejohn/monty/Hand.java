@@ -166,21 +166,24 @@ public final class Hand implements Comparable<Hand> {
 
     final long cards;
 
-    final int ranks;
+    final short ranks;
+
+    final short count;
 
     final long rankCounts;
     
     final int suitCounts;
 
-    Hand(long cards, int ranks, long rankCounts, int suitCounts) {
+    Hand(long cards, int ranks, int count, long rankCounts, int suitCounts) {
         this.cards = cards;
-        this.ranks = ranks;
+        this.ranks = (short) ranks;
+        this.count = (short) count;
         this.rankCounts = rankCounts;
         this.suitCounts = suitCounts;
     }
 
     Hand() {
-        this(0L, 0, 0L, 0);
+        this(0L, 0, 0, 0L, 0);
     }
 
     static Hand of(Card... cards) {
@@ -192,25 +195,25 @@ public final class Hand implements Comparable<Hand> {
     }
 
     Hand deal(Card card) {
-        var rank = card.rank().ordinal();
-        var suit = card.suit().ordinal();
-        var rankCount = rankCounts & (Rank.COUNTS << rank);
-        var suitCount = suitCounts & (Suit.COUNTS << suit);
+        var rank = card.rank();
+        var suit = card.suit();
+        var rankCount = rankCounts & (Rank.COUNTS << rank.ordinal());
+        var suitCount = suitCounts & (Suit.COUNTS << suit.ordinal());
         return new Hand(
             cards | card.pack(),
-            ranks | (1 << rank),
-            rankCounts ^ Long.max(1L << rank, rankCount | (rankCount << 13)),
-            suitCounts ^ Integer.max(1 << suit, suitCount | (suitCount << 4))
+            ranks | rank.pack(),
+            count + (((ranks >> rank.ordinal()) & 1) ^ 1),
+            rankCounts ^ Long.max(rank.pack(), rankCount | (rankCount << 13)),
+            suitCounts ^ Integer.max(suit.pack(), suitCount | (suitCount << 4))
         );
     }
 
     public int evaluate() {
-        var count = Integer.bitCount(ranks);
         if (count > 4) {
             if (suitCounts > 1 << 16) { // flush
                 var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
                 var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
-                count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4
+                var count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4
                 var straightFlush = straight(flush, count);
                 if (straightFlush != 0) {
                     return STRAIGHT_FLUSH.pack(straightFlush);

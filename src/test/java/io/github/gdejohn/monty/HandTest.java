@@ -1,6 +1,5 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Card.Cards.distinct;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
@@ -44,7 +43,7 @@ class HandTest {
 
     private static Hand hand(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
         var hand = Hand.of(first, second, third, fourth, fifth, sixth, seventh);
-        distinct(7, hand.cards);
+        assertThat(Long.bitCount(hand.cards)).isEqualTo(7);
         return hand;
     }
 
@@ -56,7 +55,15 @@ class HandTest {
                         d -> range(d + 1, 50).boxed().flatMap(
                             e -> range(e + 1, 51).boxed().flatMap(
                                 f -> range(f + 1, 52).mapToObj(
-                                    g -> hand(deck[a], deck[b], deck[c], deck[d], deck[e], deck[f], deck[g])
+                                    g -> hand(
+                                        deck[a],
+                                        deck[b],
+                                        deck[c],
+                                        deck[d],
+                                        deck[e],
+                                        deck[f],
+                                        deck[g]
+                                    )
                                 )
                             )
                         )
@@ -132,7 +139,8 @@ class HandTest {
             NINE.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0000001000000_0000010000000_0000000100000_0000000001111L);
-        assertThat(hand.ranks).isEqualTo(0b0000011101111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000011101111);
+        assertThat(hand.count).isEqualTo((short) 7);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000000000_0000011101111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.evaluate()).isEqualTo(0b0000_0000000000000_0000011101100);
@@ -152,7 +160,8 @@ class HandTest {
             EIGHT.of(CLUBS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000001000_0000000001000_0000000100000_0000001000111L);
-        assertThat(hand.ranks).isEqualTo(0b0000001101111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000001101111);
+        assertThat(hand.count).isEqualTo((short) 6);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000001000_0000001100111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.evaluate()).isEqualTo(0b0001_0000000001000_0000001100100);
@@ -172,7 +181,8 @@ class HandTest {
             EIGHT.of(CLUBS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000000_0000000001100_0000000000100_0000001001011L);
-        assertThat(hand.ranks).isEqualTo(0b0000001001111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000001001111);
+        assertThat(hand.count).isEqualTo((short) 5);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000001100_0000001000011L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0001_0000_0100_0010);
         assertThat(hand.evaluate()).isEqualTo(0b0010_0000000001100_0000001000000);
@@ -192,7 +202,8 @@ class HandTest {
             EIGHT.of(CLUBS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000010_0000000001100_0000000000100_0000001001010L);
-        assertThat(hand.ranks).isEqualTo(0b0000001001110);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000001001110);
+        assertThat(hand.count).isEqualTo((short) 4);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000001110_0000001000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0001_0100_1010);
         assertThat(hand.evaluate()).isEqualTo(0b0010_0000000001100_0000001000000);
@@ -212,7 +223,8 @@ class HandTest {
             KING.of(DIAMONDS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000001000_0000000001000_0100000000000_0000000001111L);
-        assertThat(hand.ranks).isEqualTo(0b0100000001111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0100000001111);
+        assertThat(hand.count).isEqualTo((short) 5);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000001000_0000000000000_0100000000111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.evaluate()).isEqualTo(0b0011_0000000001000_0100000000100);
@@ -229,11 +241,12 @@ class HandTest {
             FIVE.of(SPADES),
             SIX.of(HEARTS),
             EIGHT.of(SPADES),
-            EIGHT.of(HEARTS)
+            NINE.of(HEARTS)
         );
-        assertThat(hand.cards).isEqualTo(0b0000001001000_0000001010000_0000000000100_0000000000011L);
-        assertThat(hand.ranks).isEqualTo(0b0000001011111);
-        assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000001000000_0000000011111L);
+        assertThat(hand.cards).isEqualTo(0b0000001001000_0000010010000_0000000000100_0000000000011L);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000011011111);
+        assertThat(hand.count).isEqualTo((short) 7);
+        assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000000000_0000011011111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_0000000010000);
         assertThat(hand.category()).isEqualTo(STRAIGHT);
@@ -252,7 +265,8 @@ class HandTest {
             ACE.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b1100000000000_1000000000000_0010000000000_1001100000000L);
-        assertThat(hand.ranks).isEqualTo(0b1111100000000);
+        assertThat(hand.ranks).isEqualTo((short) 0b1111100000000);
+        assertThat(hand.count).isEqualTo((short) 5);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_1000000000000_0000000000000_0111100000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0001_1000_0110);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_1000000000000);
@@ -272,7 +286,8 @@ class HandTest {
             ACE.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0000001001000_1000001000000_0000000000100_0000000000011L);
-        assertThat(hand.ranks).isEqualTo(0b1000001001111);
+        assertThat(hand.ranks).isEqualTo((short) 0b1000001001111);
+        assertThat(hand.count).isEqualTo((short) 6);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000001000000_1000000001111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_0000000001000);
@@ -292,7 +307,8 @@ class HandTest {
             EIGHT.of(CLUBS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000000_0000000001000_0000000000100_0000001001111L);
-        assertThat(hand.ranks).isEqualTo(0b0000001001111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000001001111);
+        assertThat(hand.count).isEqualTo((short) 5);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000001100_0000001000011L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0001_0000_0000_0000_0110);
         assertThat(hand.evaluate()).isEqualTo(0b0101_0000000000000_0000001001111);
@@ -312,7 +328,8 @@ class HandTest {
             TWO.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000000_0000000000001_0000000000011_0000000001111L);
-        assertThat(hand.ranks).isEqualTo(0b0000000001111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000000001111);
+        assertThat(hand.count).isEqualTo((short) 4);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000001_0000000000010_0000000001100L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0001_0000_0010_0100);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000001_0000000000010);
@@ -332,7 +349,8 @@ class HandTest {
             TWO.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000000_0000000000011_0000000000011_0000000001011L);
-        assertThat(hand.ranks).isEqualTo(0b0000000001011);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000000001011);
+        assertThat(hand.count).isEqualTo((short) 3);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000011_0000000000000_0000000001000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0001_0110_0000);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000010_0000000000001);
@@ -352,7 +370,8 @@ class HandTest {
             TWO.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000000000_0000000000001_0000000000111_0000000000111L);
-        assertThat(hand.ranks).isEqualTo(0b0000000000111);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000000000111);
+        assertThat(hand.count).isEqualTo((short) 3);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000001_0000000000110_0000000000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0011_0000_0100);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000001_0000000000100);
@@ -372,7 +391,8 @@ class HandTest {
             QUEEN.of(CLUBS)
         );
         assertThat(hand.cards).isEqualTo(0b0000010000000_0000010010000_0000010000000_0010010100000L);
-        assertThat(hand.ranks).isEqualTo(0b0010010110000);
+        assertThat(hand.ranks).isEqualTo((short) 0b0010010110000);
+        assertThat(hand.count).isEqualTo((short) 4);
         assertThat(hand.rankCounts).isEqualTo(0b0000010000000_0000000000000_0000000000000_0010000110000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0001_0100_1010);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0010000000000);
@@ -392,7 +412,8 @@ class HandTest {
             QUEEN.of(SPADES)
         );
         assertThat(hand.cards).isEqualTo(0b0010010000000_0000010010000_0000010000000_0000010010000L);
-        assertThat(hand.ranks).isEqualTo(0b0010010010000);
+        assertThat(hand.ranks).isEqualTo((short) 0b0010010010000);
+        assertThat(hand.count).isEqualTo((short) 3);
         assertThat(hand.rankCounts).isEqualTo(0b0000010000000_0000000000000_0000000010000_0010000000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0010000000000);
@@ -412,7 +433,8 @@ class HandTest {
             NINE.of(SPADES)
         );
         assertThat(hand.cards).isEqualTo(0b0000010010000_0000010010000_0000010000000_0000010010000L);
-        assertThat(hand.ranks).isEqualTo(0b0000010010000);
+        assertThat(hand.ranks).isEqualTo((short) 0b0000010010000);
+        assertThat(hand.count).isEqualTo((short) 2);
         assertThat(hand.rankCounts).isEqualTo(0b0000010000000_0000000010000_0000000000000_0000000000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0000000010000);
@@ -432,7 +454,8 @@ class HandTest {
             KING.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b0010000000000_0101111100000_0000000000000_0000000000000L);
-        assertThat(hand.ranks).isEqualTo(0b0111111100000);
+        assertThat(hand.ranks).isEqualTo((short) 0b0111111100000);
+        assertThat(hand.count).isEqualTo((short) 7);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000000000_0111111100000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0100_0000_0000_0000_0000_1000);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_0001000000000);
@@ -452,7 +475,8 @@ class HandTest {
             ACE.of(HEARTS)
         );
         assertThat(hand.cards).isEqualTo(0b1000000000000_1000000000000_0000000000000_1111100000000L);
-        assertThat(hand.ranks).isEqualTo(0b1111100000000);
+        assertThat(hand.ranks).isEqualTo((short) 0b1111100000000);
+        assertThat(hand.count).isEqualTo((short) 5);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_1000000000000_0000000000000_0111100000000L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0001_0000_0000_0000_1100);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_1000000000000);
@@ -472,7 +496,8 @@ class HandTest {
             ACE.of(DIAMONDS)
         );
         assertThat(hand.cards).isEqualTo(0b0000000010000_0000000100000_1000000001111_0000000000000L);
-        assertThat(hand.ranks).isEqualTo(0b1000000111111);
+        assertThat(hand.ranks).isEqualTo((short) 0b1000000111111);
+        assertThat(hand.count).isEqualTo((short) 7);
         assertThat(hand.rankCounts).isEqualTo(0b0000000000000_0000000000000_0000000000000_1000000111111L);
         assertThat(hand.suitCounts).isEqualTo(0b0000_0000_0010_0000_0000_0000_1100);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_0000000001000);

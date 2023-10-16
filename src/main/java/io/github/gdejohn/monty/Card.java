@@ -15,7 +15,9 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
         protected Cards(Card[] cards) {
             this.cards = Arrays.copyOf(cards, cards.length);
-            distinct(cards.length, this.pack());
+            if (Long.bitCount(this.pack()) != cards.length) {
+                throw new IllegalArgumentException();
+            }
         }
 
         long pack() {
@@ -41,12 +43,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
                 packed -> packed != 0,
                 packed -> packed & (packed - 1)
             ).mapToObj(Card::unpack);
-        }
-
-        static void distinct(int count, long cards) {
-            if (Long.bitCount(cards) != count) {
-                throw new IllegalArgumentException();
-            }
         }
 
         static String toString(Stream<Card> cards) {
@@ -118,6 +114,10 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
         Stream<Card> cards() {
             return EnumSet.allOf(Rank.class).stream().map(rank -> new Card(rank, this));
+        }
+
+        int pack() {
+            return 1 << ordinal();
         }
     }
 
