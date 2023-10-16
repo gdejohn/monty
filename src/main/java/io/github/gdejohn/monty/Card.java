@@ -1,10 +1,8 @@
 package io.github.gdejohn.monty;
 
-import static java.util.Comparator.comparingInt;
 import static java.util.stream.Collectors.joining;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -121,8 +119,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         }
     }
 
-    private static final Comparator<Card> REVERSE_LOWBALL = comparingInt(card -> -(card.rank.ordinal() + 1) % 13);
-
     private static final Card[] values = EnumSet.allOf(Suit.class).stream().flatMap(Suit::cards).toArray(Card[]::new);
 
     static final long DECK = -1L >>> -52;
@@ -133,10 +129,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
     static Card unpack(long card) {
         return Card.values[Long.numberOfTrailingZeros(card)];
-    }
-
-    static Comparator<Card> reverseLowball() {
-        return REVERSE_LOWBALL;
     }
 
     public static Stream<Card> deck() {

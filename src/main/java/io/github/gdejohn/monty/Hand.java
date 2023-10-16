@@ -1,6 +1,5 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Card.reverseLowball;
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
 import static io.github.gdejohn.monty.Hand.Category.FLUSH;
 import static io.github.gdejohn.monty.Hand.Category.FOUR_OF_A_KIND;
@@ -60,7 +59,7 @@ public final class Hand implements Comparable<Hand> {
                     )
                 ).values().stream().flatMap(Optional::stream);
                 if (high == FIVE) { // wheel
-                    return cards.sorted(reverseLowball()).dropWhile(card -> card.rank() != high);
+                    return cards.sorted(reverseLowball).dropWhile(card -> card.rank() != high);
                 } else {
                     return cards.sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
                 }
@@ -90,12 +89,14 @@ public final class Hand implements Comparable<Hand> {
             Stream<Card> cards(Hand hand) {
                 var high = Rank.unpack(hand.evaluate());
                 if (high == FIVE) { // steel wheel
-                    return flush(hand, reverseLowball()).dropWhile(card -> card.rank() != high);
+                    return flush(hand, reverseLowball).dropWhile(card -> card.rank() != high);
                 } else {
                     return flush(hand, reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
                 }
             }
         };
+
+        private static final Comparator<Card> reverseLowball = comparingInt(card -> -(card.rank().ordinal() + 1) % 13);
 
         private static final int SHIFT = 26;
 
@@ -148,7 +149,7 @@ public final class Hand implements Comparable<Hand> {
         }
 
         final int pack(long ranks) {
-            return (this.ordinal() << 26) | (int) ranks;
+            return (this.ordinal() << Category.SHIFT) | (int) ranks;
         }
 
         final int bitCount() {
@@ -164,14 +165,43 @@ public final class Hand implements Comparable<Hand> {
         }
     }
 
+    /**
+     * A bit vector of the cards in this hand.
+     *
+     * <p>The bit vector is organized into four blocks of thirteen bits each,
+     * one block for each suit.
+     */
     final long cards;
 
+    /**
+     * A bit vector of the distinct ranks of the cards in this hand.
+     */
     final short ranks;
 
+    /**
+     * The number of distinct ranks of the cards in this hand.
+     */
     final short count;
 
+    /**
+     * A bit vector multiset of the rank frequencies in this hand.
+     *
+     * <p>The bit vector is organized into four blocks of thirteen bits each.
+     * The blocks represent the frequency of a rank, increasing from least to
+     * most significant bits. The positions of set bits within a block indicate
+     * which ranks occur with the frequency represented by that block.
+     */
     final long rankCounts;
     
+    /**
+     * A bit vector multiset of the suit frequencies in this hand.
+     *
+     * <p>The bit vector is organized into seven blocks of four bits each. The
+     * blocks represent the frequency of a suit from one through seven,
+     * increasing from least to most significant bits. The positions of set
+     * bits within a block indicate which suits occur with the frequency
+     * represented by that block.
+     */
     final int suitCounts;
 
     Hand(long cards, int ranks, int count, long rankCounts, int suitCounts) {
@@ -202,7 +232,7 @@ public final class Hand implements Comparable<Hand> {
         return new Hand(
             cards | card.pack(),
             ranks | rank.pack(),
-            count + (((ranks >> rank.ordinal()) & 1) ^ 1),
+            count + (((ranks >>> rank.ordinal()) & 1) ^ 1),
             rankCounts ^ Long.max(rank.pack(), rankCount | (rankCount << 13)),
             suitCounts ^ Integer.max(suit.pack(), suitCount | (suitCount << 4))
         );
@@ -210,7 +240,7 @@ public final class Hand implements Comparable<Hand> {
 
     public int evaluate() {
         if (count > 4) {
-            if (suitCounts > 1 << 16) { // flush
+            if (suitCounts > 1 << 16) {
                 var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
                 var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
                 var count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4

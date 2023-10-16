@@ -101,7 +101,7 @@ class HandTest {
     @Test
     void benchmark() {
         var blackhole = 0;
-        var partial = new Hand[7];
+        var partial = new Hand[6];
         for (var a = 0; a < 46; a++) {
             partial[0] = new Hand().deal(deck[a]);
             for (var b = a + 1; b < 47; b++) {
@@ -115,8 +115,7 @@ class HandTest {
                             for (var f = e + 1; f < 51; f++) {
                                 partial[5] = partial[4].deal(deck[f]);
                                 for (var g = f + 1; g < 52; g++) {
-                                    partial[6] = partial[5].deal(deck[g]);
-                                    blackhole |= partial[6].evaluate();
+                                    blackhole |=  partial[5].deal(deck[g]).evaluate();
                                 }
                             }
                         }
@@ -125,6 +124,40 @@ class HandTest {
             }
         }
         assertThat(blackhole != 0);
+    }
+
+    @Test
+    void unsharedBenchmark() {
+        var blackhole = 0;
+        for (var a = 0; a < 46; a++) {
+            for (var b = a + 1; b < 47; b++) {
+                for (var c = b + 1; c < 48; c++) {
+                    for (var d = c + 1; d < 49; d++) {
+                        for (var e = d + 1; e < 50; e++) {
+                            for (var f = e + 1; f < 51; f++) {
+                                for (var g = f + 1; g < 52; g++) {
+                                    blackhole |= hand(
+                                        deck[a],
+                                        deck[b],
+                                        deck[c],
+                                        deck[d],
+                                        deck[e],
+                                        deck[f],
+                                        deck[g]
+                                    ).evaluate();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assertThat(blackhole != 0);
+    }
+
+    @Test
+    void streamBenchmark() {
+        assertThat(hands().mapToInt(Hand::evaluate).reduce(0, (n, m) -> n | m)).isNotEqualTo(0);
     }
 
     @Test

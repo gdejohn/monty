@@ -180,10 +180,9 @@ public final class Monty {
                 deck[index] = Card.unpack(card);
                 cards ^= card;
             }
-            var parallel = true;
             return StreamSupport.stream(
                 new Showdowns(rng, deck, pocket, board, trials),
-                parallel
+                true // parallel
             );
         }
     }
@@ -205,16 +204,16 @@ public final class Monty {
             /**
              * Least common multiple of the integers from 1 to 23, inclusive.
              */
-            private static final long POT = 5_354_228_880L;
+            private static final long pot = 5_354_228_880L;
 
-            private static final long[] WINNINGS = winnings();
+            private static final long[] shares = shares();
 
-            private static long[] winnings() {
-                var winnings = new long[24];
-                for (var split = 1; split < winnings.length; split++) {
-                    winnings[split] = POT / split;
+            private static long[] shares() {
+                var shares = new long[24];
+                for (var split = 1; split < shares.length; split++) {
+                    shares[split] = pot / split;
                 }
-                return winnings;
+                return shares;
             }
             
             private long winnings = 0L;
@@ -222,7 +221,7 @@ public final class Monty {
             private int trials = 0;
             
             void accumulate(Showdown showdown) {
-                winnings += WINNINGS[showdown.split()];
+                winnings += shares[showdown.split()];
                 trials++;
             }
 
@@ -234,7 +233,7 @@ public final class Monty {
 
             BigDecimal finish() {
                 return BigDecimal.valueOf(winnings).divide(
-                    BigDecimal.valueOf(POT).multiply(BigDecimal.valueOf(trials)),
+                    BigDecimal.valueOf(pot).multiply(BigDecimal.valueOf(trials)),
                     context
                 );
             }
