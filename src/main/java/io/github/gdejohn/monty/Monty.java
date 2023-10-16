@@ -2,7 +2,7 @@ package io.github.gdejohn.monty;
 
 import static io.github.gdejohn.monty.Monty.Showdown.LOSS;
 import static io.github.gdejohn.monty.Monty.Showdown.WIN;
-import static java.math.MathContext.DECIMAL128;
+import static java.math.RoundingMode.HALF_EVEN;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 
 import java.math.BigDecimal;
@@ -58,6 +58,8 @@ public final class Monty {
 
         int split();
     }
+
+    private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
 
     private Monty() {
         throw new AssertionError("this class is not intended to be instantiated");
@@ -196,7 +198,7 @@ public final class Monty {
     }
 
     public static Collector<Showdown, ?, BigDecimal> equity() {
-        return equity(DECIMAL128);
+        return equity(DEFAULT_CONTEXT);
     }
 
     public static Collector<Showdown, ?, BigDecimal> equity(MathContext context) {
@@ -249,7 +251,7 @@ public final class Monty {
     }
 
     public static Collector<Showdown, ?, BigDecimal> expectedValue(long pot, long raise) {
-        return expectedValue(pot, raise, DECIMAL128);
+        return expectedValue(pot, raise, DEFAULT_CONTEXT);
     }
 
     public static Collector<Showdown, ?, BigDecimal> expectedValue(long pot, long raise, MathContext context) {

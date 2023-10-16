@@ -9,10 +9,8 @@ import static io.github.gdejohn.monty.Card.Rank.TEN;
 import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.HEARTS;
 import static io.github.gdejohn.monty.Pocket.pocket;
-import static java.math.RoundingMode.HALF_EVEN;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.MathContext;
 import java.util.SplittableRandom;
 import java.util.stream.Stream;
 
@@ -21,8 +19,6 @@ import org.junit.jupiter.api.Test;
 import io.github.gdejohn.monty.Monty.Showdown;
 
 class MontyTest {
-    private static final MathContext context = new MathContext(4, HALF_EVEN);
-
     private static Stream<Showdown> outsideStraightFlushDraw() {
         var seed = 8736237757166344667L;
         var rng = new SplittableRandom(seed);
@@ -35,11 +31,11 @@ class MontyTest {
 
     @Test
     void equity() {
-        assertThat(outsideStraightFlushDraw().collect(Monty.equity(context))).hasToString("0.5228");
+        assertThat(outsideStraightFlushDraw().collect(Monty.equity())).hasToString("0.5228");
     }
 
     @Test
     void equitySequential() {
-        assertThat(outsideStraightFlushDraw().sequential().collect(Monty.equity(context))).hasToString("0.5228");
+        assertThat(outsideStraightFlushDraw().sequential().collect(Monty.equity())).hasToString("0.5228");
     }
 }
