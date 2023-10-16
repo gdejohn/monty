@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
-import io.github.gdejohn.monty.Monty.Showdown;
 
 class MontyTest {
     private static Stream<Showdown> outsideStraightFlushDraw() {

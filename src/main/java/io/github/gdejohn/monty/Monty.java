@@ -1,7 +1,7 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Monty.Showdown.LOSS;
-import static io.github.gdejohn.monty.Monty.Showdown.WIN;
+import static io.github.gdejohn.monty.Showdown.LOSS;
+import static io.github.gdejohn.monty.Showdown.WIN;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 
@@ -17,48 +17,9 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import io.github.gdejohn.monty.Card.Cards;
-import io.github.gdejohn.monty.Monty.Showdown.Tie;
+import io.github.gdejohn.monty.Showdown.Tie;
 
 public final class Monty {
-    public static sealed interface Showdown {
-        public static record Win() implements Showdown {
-            @Override
-            public int split() {
-                return 1;
-            }
-        }
-
-        public static record Loss() implements Showdown {
-            @Override
-            public int split() {
-                return 0;
-            }
-        }
-
-        public static record Tie(int split) implements Showdown {
-            public Tie {
-                if (split < 2 || split > 23) {
-                    throw new IllegalArgumentException();
-                }
-            }
-
-            @Override
-            public double share() {
-                return 1.0d / split;
-            }
-        }
-
-        public static final Win WIN = new Win();
-
-        public static final Loss LOSS = new Loss();
-
-        default double share() {
-            return split();
-        }
-
-        int split();
-    }
-
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
 
     private Monty() {
@@ -131,11 +92,11 @@ public final class Monty {
                 return partial;
             }
 
-            private static Hand hand(Hand partial, Pocket pocket) {
+            private static int evaluate(Hand partial, Pocket pocket) {
                 for (var index = 0; index < 2; index++) {
                     partial = partial.deal(pocket.cards[index]);
                 }
-                return partial;
+                return partial.evaluate();
             }
 
             @Override
@@ -145,7 +106,7 @@ public final class Monty {
                 } else {
                     shuffle();
                     var board = deal(partial, deck.length - 45);
-                    var value = hand(board, pocket).evaluate();
+                    var value = evaluate(board, pocket);
                     Showdown outcome = WIN;
                     for (var i = 0; i < opponents; i++) {
                         switch (Integer.signum(value - deal(board, 2).evaluate())) {
