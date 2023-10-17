@@ -77,10 +77,6 @@ public final class Monty {
                 }
             }
 
-            private void shuffle() {
-                bound = deck.length;
-            }
-
             private Hand deal(Hand partial, int n) {
                 while (n-- > 0) {
                     var index = rng.nextInt(bound--);
@@ -92,19 +88,20 @@ public final class Monty {
                 return partial;
             }
 
-            private static int evaluate(Hand partial, Pocket pocket) {
+            private static int evaluate(Hand hand, Pocket pocket) {
                 for (var index = 0; index < 2; index++) {
-                    partial = partial.deal(pocket.cards[index]);
+                    hand = hand.deal(pocket.cards[index]);
                 }
-                return partial.evaluate();
+                return hand.evaluate();
             }
 
             @Override
             public boolean tryAdvance(Consumer<? super Showdown> action) {
-                if (trials-- < 1) {
+                if (trials < 1) {
                     return false;
                 } else {
-                    shuffle();
+                    trials--;
+                    bound = deck.length; // shuffle
                     var board = deal(partial, deck.length - 45);
                     var value = evaluate(board, pocket);
                     Showdown outcome = WIN;
