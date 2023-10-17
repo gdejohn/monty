@@ -63,8 +63,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         KING("K"),
         ACE("A");
 
-        static final long COUNTS = 0b0000000000001_0000000000001_0000000000001L;
-
         private static final Rank[] values = Rank.values();
 
         private final String string;
@@ -89,6 +87,15 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         int pack() {
             return 1 << ordinal();
         }
+
+        long count(long ranks) {
+            return ranks & (0x4002001L << ordinal());
+        }
+
+        long increment(long ranks) {
+            var count = count(ranks);
+            return ranks ^ Long.max(pack(), count | (count << 13));
+        }
     }
 
     public enum Suit {
@@ -96,8 +103,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         DIAMONDS("♦"),
         HEARTS("♥"),
         SPADES("♠");
-
-        static final int COUNTS = 0b0001_0001_0001_0001_0001_0001;
 
         private final String string;
 
@@ -116,6 +121,15 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
         int pack() {
             return 1 << ordinal();
+        }
+
+        int count(int suits) {
+            return suits & (0x111111 << ordinal());
+        }
+
+        int increment(int suits) {
+            var count = count(suits);
+            return suits ^ Integer.max(pack(), count | (count << 4));
         }
     }
 

@@ -174,16 +174,6 @@ public final class Hand implements Comparable<Hand> {
     final long cards;
 
     /**
-     * A bit vector of the distinct ranks of the cards in this hand.
-     */
-    final short ranks;
-
-    /**
-     * The number of distinct ranks of the cards in this hand.
-     */
-    final short count;
-
-    /**
      * A bit vector multiset of the rank frequencies in this hand.
      *
      * <p>The bit vector is organized into four blocks of thirteen bits each.
@@ -191,7 +181,7 @@ public final class Hand implements Comparable<Hand> {
      * most significant bits. The positions of set bits within a block indicate
      * which ranks occur with the frequency represented by that block.
      */
-    final long rankCounts;
+    final long ranks;
     
     /**
      * A bit vector multiset of the suit frequencies in this hand.
@@ -202,18 +192,28 @@ public final class Hand implements Comparable<Hand> {
      * bits within a block indicate which suits occur with the frequency
      * represented by that block.
      */
-    final int suitCounts;
+    final int suits;
 
-    Hand(long cards, int ranks, int count, long rankCounts, int suitCounts) {
+    /**
+     * A bit vector of the ranks of the cards in this hand.
+     */
+    final short kickers;
+
+    /**
+     * The number of distinct ranks of the cards in this hand.
+     */
+    final short count;
+
+    Hand(long cards, long ranks, int suits, int kickers, int count) {
         this.cards = cards;
-        this.ranks = (short) ranks;
+        this.ranks = ranks;
+        this.suits = suits;
+        this.kickers = (short) kickers;
         this.count = (short) count;
-        this.rankCounts = rankCounts;
-        this.suitCounts = suitCounts;
     }
 
     Hand() {
-        this(0L, 0, 0, 0L, 0);
+        this(0L, 0L, 0, 0, 0);
     }
 
     static Hand of(Card... cards) {
@@ -226,22 +226,19 @@ public final class Hand implements Comparable<Hand> {
 
     Hand deal(Card card) {
         var rank = card.rank();
-        var suit = card.suit();
-        var rankCount = rankCounts & (Rank.COUNTS << rank.ordinal());
-        var suitCount = suitCounts & (Suit.COUNTS << suit.ordinal());
         return new Hand(
             cards | card.pack(),
-            ranks | rank.pack(),
-            count + (((ranks >>> rank.ordinal()) & 1) ^ 1),
-            rankCounts ^ Long.max(rank.pack(), rankCount | (rankCount << 13)),
-            suitCounts ^ Integer.max(suit.pack(), suitCount | (suitCount << 4))
+            rank.increment(ranks),
+            card.suit().increment(suits),
+            kickers | rank.pack(),
+            count + (((kickers >>> rank.ordinal()) & 1) ^ 1)
         );
     }
 
     public int evaluate() {
         if (count > 4) {
-            if (suitCounts > 1 << 16) {
-                var suit = 31 - Integer.numberOfLeadingZeros(suitCounts);
+            if (suits > 1 << 16) {
+                var suit = 31 - Integer.numberOfLeadingZeros(suits);
                 var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
                 var count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4
                 var straightFlush = straight(flush, count);
@@ -251,34 +248,34 @@ public final class Hand implements Comparable<Hand> {
                     return FLUSH.pack(select(flush, count - 5));
                 }
             } else {
-                var straight = straight(ranks, count);
+                var straight = straight(kickers, count);
                 if (straight != 0) {
                     return STRAIGHT.pack(straight);
                 } else if (count > 5) {
                     if (count == 6) { // 2-1-1-1-1-1
-                        var pair = rankCounts >>> 13;
-                        return ONE_PAIR.pack((pair << 13) | select(ranks ^ pair, 2));
+                        var pair = ranks >>> 13;
+                        return ONE_PAIR.pack((pair << 13) | select(kickers ^ pair, 2));
                     } else { // 1-1-1-1-1-1-1
-                        return HIGH_CARD.pack(select(ranks, 2));
+                        return HIGH_CARD.pack(select(kickers, 2));
                     }
-                } else if (rankCounts < 1L << 26) { // 2-2-1-1-1
-                    var pairs = rankCounts >> 13;
-                    return TWO_PAIR.pack((pairs << 13) | select(ranks ^ pairs, 2));
+                } else if (ranks < 1L << 26) { // 2-2-1-1-1
+                    var pairs = ranks >> 13;
+                    return TWO_PAIR.pack((pairs << 13) | select(kickers ^ pairs, 2));
                 } else { // 3-1-1-1-1
-                    var trips = rankCounts >>> 26;
-                    return THREE_OF_A_KIND.pack((trips << 13) | select(ranks ^ trips, 2));
+                    var trips = ranks >>> 26;
+                    return THREE_OF_A_KIND.pack((trips << 13) | select(kickers ^ trips, 2));
                 }
             }
-        } else if (rankCounts < 1L << 26) { // 2-2-2-1
-            var pairs = select(rankCounts >>> 13, 1);
-            return TWO_PAIR.pack((pairs << 13) | select(ranks ^ pairs, 1));
-        } else if (rankCounts < 1L << 39) { // 3-3-1, 3-2-2, 3-2-1-1
-            var fullHouse = select(rankCounts, count - 2) >>> 13;
+        } else if (ranks < 1L << 26) { // 2-2-2-1
+            var pairs = select(ranks >>> 13, 1);
+            return TWO_PAIR.pack((pairs << 13) | select(kickers ^ pairs, 1));
+        } else if (ranks < 1L << 39) { // 3-3-1, 3-2-2, 3-2-1-1
+            var fullHouse = select(ranks, count - 2) >>> 13;
             var pair = fullHouse & -fullHouse;
             return FULL_HOUSE.pack((fullHouse ^ pair) | (pair >>> 13) | (pair & (-1 >>> -13)));
         } else { // 4-3, 4-2-1, 4-1-1-1
-            var quads = rankCounts >>> 39;
-            return FOUR_OF_A_KIND.pack((quads << 13) | select(ranks ^ quads, count - 2));
+            var quads = ranks >>> 39;
+            return FOUR_OF_A_KIND.pack((quads << 13) | select(kickers ^ quads, count - 2));
         }
     }
 
