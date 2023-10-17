@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 
 class MontyTest {
-    private static Stream<Showdown> outsideStraightFlushDraw() {
+    private static Stream<Showdown> simulation() {
         var seed = 8736237757166344667L;
         var rng = new SplittableRandom(seed);
         var trials = 1 << 20;
@@ -30,11 +30,11 @@ class MontyTest {
 
     @Test
     void equity() {
-        assertThat(outsideStraightFlushDraw().collect(Monty.equity())).hasToString("0.5228");
+        assertThat(simulation().collect(Monty.equity())).hasToString("0.5228");
     }
 
     @Test
     void equitySequential() {
-        assertThat(outsideStraightFlushDraw().sequential().collect(Monty.equity())).hasToString("0.5228");
+        assertThat(simulation().sequential().collect(Monty.equity())).hasToString("0.5228");
     }
 }

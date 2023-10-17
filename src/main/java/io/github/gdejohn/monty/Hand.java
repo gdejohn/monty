@@ -212,11 +212,11 @@ public final class Hand implements Comparable<Hand> {
         this.count = (short) count;
     }
 
-    Hand() {
+    public Hand() {
         this(0L, 0L, 0, 0, 0);
     }
 
-    static Hand of(Card... cards) {
+    static Hand hand(Card... cards) {
         var hand = new Hand();
         for (var card : cards) {
             hand = hand.deal(card);
@@ -224,7 +224,7 @@ public final class Hand implements Comparable<Hand> {
         return hand;
     }
 
-    Hand deal(Card card) {
+    public Hand deal(Card card) {
         var rank = card.rank();
         return new Hand(
             cards | card.pack(),

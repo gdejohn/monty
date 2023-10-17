@@ -1,5 +1,6 @@
 package io.github.gdejohn.monty;
 
+import static io.github.gdejohn.monty.Hand.hand;
 import static io.github.gdejohn.monty.Showdown.LOSS;
 import static io.github.gdejohn.monty.Showdown.WIN;
 import static java.math.RoundingMode.HALF_EVEN;
@@ -49,7 +50,7 @@ public final class Monty {
             }
 
             Showdowns(SplittableRandom rng, Card[] deck, Pocket pocket, Board board, long trials) {
-                this(rng, deck, pocket, Hand.of(board.cards), trials);
+                this(rng, deck, pocket, hand(board.cards), trials);
             }
 
             @Override

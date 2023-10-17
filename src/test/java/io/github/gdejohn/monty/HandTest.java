@@ -41,8 +41,15 @@ import io.github.gdejohn.monty.Hand.Category;
 class HandTest {
     private static final Card[] deck = Card.deck().toArray(Card[]::new);
 
-    private static Hand hand(Card first, Card second, Card third, Card fourth, Card fifth, Card sixth, Card seventh) {
-        var hand = Hand.of(first, second, third, fourth, fifth, sixth, seventh);
+    private static Hand hand(Card a, Card b, Card c, Card d, Card e, Card f, Card g) {
+        var hand = new Hand();
+        hand = hand.deal(a);
+        hand = hand.deal(b);
+        hand = hand.deal(c);
+        hand = hand.deal(d);
+        hand = hand.deal(e);
+        hand = hand.deal(f);
+        hand = hand.deal(g);
         assertThat(Long.bitCount(hand.cards)).isEqualTo(7);
         return hand;
     }
@@ -96,68 +103,6 @@ class HandTest {
                 hands.values().stream().mapToInt(Math::toIntExact).sum()
             ).isEqualTo(category.hands());
         }
-    }
-
-    @Test
-    void benchmark() {
-        var blackhole = 0;
-        var partial = new Hand[6];
-        for (var a = 0; a < 46; a++) {
-            partial[0] = new Hand().deal(deck[a]);
-            for (var b = a + 1; b < 47; b++) {
-                partial[1] = partial[0].deal(deck[b]);
-                for (var c = b + 1; c < 48; c++) {
-                    partial[2] = partial[1].deal(deck[c]);
-                    for (var d = c + 1; d < 49; d++) {
-                        partial[3] = partial[2].deal(deck[d]);
-                        for (var e = d + 1; e < 50; e++) {
-                            partial[4] = partial[3].deal(deck[e]);
-                            for (var f = e + 1; f < 51; f++) {
-                                partial[5] = partial[4].deal(deck[f]);
-                                for (var g = f + 1; g < 52; g++) {
-                                    blackhole |=  partial[5].deal(deck[g]).evaluate();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        assertThat(blackhole != 0);
-    }
-
-    @Test
-    void unsharedBenchmark() {
-        var blackhole = 0;
-        for (var a = 0; a < 46; a++) {
-            for (var b = a + 1; b < 47; b++) {
-                for (var c = b + 1; c < 48; c++) {
-                    for (var d = c + 1; d < 49; d++) {
-                        for (var e = d + 1; e < 50; e++) {
-                            for (var f = e + 1; f < 51; f++) {
-                                for (var g = f + 1; g < 52; g++) {
-                                    blackhole |= hand(
-                                        deck[a],
-                                        deck[b],
-                                        deck[c],
-                                        deck[d],
-                                        deck[e],
-                                        deck[f],
-                                        deck[g]
-                                    ).evaluate();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        assertThat(blackhole != 0);
-    }
-
-    @Test
-    void streamBenchmark() {
-        assertThat(hands().mapToInt(Hand::evaluate).reduce(0, (n, m) -> n | m)).isNotEqualTo(0);
     }
 
     @Test
