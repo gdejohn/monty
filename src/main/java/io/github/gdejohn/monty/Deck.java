@@ -49,11 +49,15 @@ public class Deck {
     }
 
     public Card deal() {
-        var index = rng.nextInt(bound--);
-        var card = cards[index];
-        cards[index] = cards[bound];
-        cards[bound] = card;
-        return card;
+        if (bound > 0) {
+            var index = rng.nextInt(bound--);
+            var card = cards[index];
+            cards[index] = cards[bound];
+            cards[bound] = card;
+            return card;
+        } else {
+            throw new IllegalStateException("no cards remaining");
+        }
     }
 
     Hand deal(Hand partial, int n) {
