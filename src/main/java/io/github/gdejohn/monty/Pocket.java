@@ -7,6 +7,13 @@ public final class Pocket extends Cards {
         super(cards);
     }
 
+    int evaluate(Hand hand) {
+        for (var index = 0; index < cards.length; index++) {
+            hand = hand.deal(cards[index]);
+        }
+        return hand.evaluate();
+    }
+
     public static Pocket pocket(Card first, Card second) {
         return new Pocket(first, second);
     }

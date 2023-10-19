@@ -1,9 +1,11 @@
 package io.github.gdejohn.monty;
 
+import static io.github.gdejohn.monty.Card.Rank.ranks;
+import static io.github.gdejohn.monty.Card.Suit.suits;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -13,7 +15,7 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
         protected Cards(Card[] cards) {
             this.cards = Arrays.copyOf(cards, cards.length);
-            if (Long.bitCount(this.pack()) != cards.length) {
+            if (Long.bitCount(pack()) != cards.length) {
                 throw new IllegalArgumentException();
             }
         }
@@ -27,7 +29,7 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         }
 
         Stream<Card> cards() {
-            return Arrays.stream(cards);
+            return stream(cards);
         }
 
         @Override
@@ -63,7 +65,7 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         KING("K"),
         ACE("A");
 
-        private static final Rank[] values = Rank.values();
+        private static final Rank[] ranks = Rank.values();
 
         private final String string;
 
@@ -72,7 +74,11 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         }
 
         static Rank unpack(int rank) {
-            return Rank.values[Integer.numberOfTrailingZeros(rank)];
+            return ranks[Integer.numberOfTrailingZeros(rank)];
+        }
+
+        public static Stream<Rank> ranks() {
+            return stream(ranks);
         }
 
         @Override
@@ -81,7 +87,7 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         }
 
         public Card of(Suit suit) {
-            return Card.values[Card.ordinal(this, suit)];
+            return card(this, suit);
         }
 
         int pack() {
@@ -99,24 +105,26 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
     }
 
     public enum Suit {
-        CLUBS("♣"),
-        DIAMONDS("♦"),
-        HEARTS("♥"),
-        SPADES("♠");
+        CLUBS("c"),
+        DIAMONDS("d"),
+        HEARTS("h"),
+        SPADES("s");
 
+        private static final Suit[] suits = Suit.values();
+        
         private final String string;
 
         Suit(String string) {
             this.string = string;
         }
 
+        public static Stream<Suit> suits() {
+            return stream(suits);
+        }
+
         @Override
         public String toString() {
             return string;
-        }
-
-        Stream<Card> cards() {
-            return EnumSet.allOf(Rank.class).stream().map(rank -> new Card(rank, this));
         }
 
         int pack() {
@@ -133,28 +141,24 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
         }
     }
 
-    private static final Card[] values = EnumSet.allOf(Suit.class).stream().flatMap(Suit::cards).toArray(Card[]::new);
-
-    static final long DECK = -1L >>> -52;
+    private static final Card[] cards = suits().flatMap(
+        suit -> ranks().map(rank -> new Card(rank, suit))
+    ).toArray(Card[]::new);
 
     private static int ordinal(Rank rank, Suit suit) {
         return rank.ordinal() + (suit.ordinal() * 13);
     }
 
     static Card unpack(long card) {
-        return Card.values[Long.numberOfTrailingZeros(card)];
+        return cards[Long.numberOfTrailingZeros(card)];
     }
 
-    public static Stream<Card> deck() {
-        return Arrays.stream(values);
+    static Card card(Rank rank, Suit suit) {
+        return cards[Card.ordinal(rank, suit)];
     }
 
-    int ordinal() {
-        return Card.ordinal(rank, suit);
-    }
-
-    long pack() {
-        return 1L << ordinal();
+    public static Stream<Card> cards() {
+        return stream(cards);
     }
 
     public Rank rank() {
@@ -173,5 +177,13 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
     @Override
     public String toString() {
         return rank.string + suit.string;
+    }
+
+    int ordinal() {
+        return Card.ordinal(rank, suit);
+    }
+
+    long pack() {
+        return 1L << ordinal();
     }
 }

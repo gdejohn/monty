@@ -1,169 +1,21 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Card.Rank.FIVE;
-import static io.github.gdejohn.monty.Hand.Category.FLUSH;
-import static io.github.gdejohn.monty.Hand.Category.FOUR_OF_A_KIND;
-import static io.github.gdejohn.monty.Hand.Category.FULL_HOUSE;
-import static io.github.gdejohn.monty.Hand.Category.HIGH_CARD;
-import static io.github.gdejohn.monty.Hand.Category.ONE_PAIR;
-import static io.github.gdejohn.monty.Hand.Category.STRAIGHT;
-import static io.github.gdejohn.monty.Hand.Category.STRAIGHT_FLUSH;
-import static io.github.gdejohn.monty.Hand.Category.THREE_OF_A_KIND;
-import static io.github.gdejohn.monty.Hand.Category.TWO_PAIR;
-import static java.util.Comparator.comparing;
-import static java.util.Comparator.comparingInt;
-import static java.util.Comparator.reverseOrder;
-import static java.util.Map.Entry.comparingByValue;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.maxBy;
-import static java.util.stream.Collectors.toCollection;
+import static io.github.gdejohn.monty.Category.FLUSH;
+import static io.github.gdejohn.monty.Category.FOUR_OF_A_KIND;
+import static io.github.gdejohn.monty.Category.FULL_HOUSE;
+import static io.github.gdejohn.monty.Category.HIGH_CARD;
+import static io.github.gdejohn.monty.Category.ONE_PAIR;
+import static io.github.gdejohn.monty.Category.STRAIGHT;
+import static io.github.gdejohn.monty.Category.STRAIGHT_FLUSH;
+import static io.github.gdejohn.monty.Category.THREE_OF_A_KIND;
+import static io.github.gdejohn.monty.Category.TWO_PAIR;
 
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import io.github.gdejohn.monty.Card.Cards;
-import io.github.gdejohn.monty.Card.Rank;
-import io.github.gdejohn.monty.Card.Suit;
 
 public final class Hand implements Comparable<Hand> {
-    public enum Category {
-        HIGH_CARD(5, 407, 23_294_460),
-
-        ONE_PAIR(5, 1_470, 58_627_800),
-
-        TWO_PAIR(4, 763, 31_433_400) {
-            @Override
-            Stream<Card> cards(Hand hand) {
-                var pairs = Category.unpack(hand).limit(4);
-                var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
-                return Stream.concat(pairs, kicker);
-            }
-        },
-
-        THREE_OF_A_KIND(5, 575, 6_461_620),
-
-        STRAIGHT(2, 10, 6_180_020) {
-            @Override
-            Stream<Card> cards(Hand hand) {
-                var high = Rank.unpack(hand.evaluate());
-                var cards = Cards.unpack(hand.cards).collect(
-                    groupingBy(
-                        Card::rank,
-                        () -> new EnumMap<>(Rank.class),
-                        maxBy(comparing(Card::suit))
-                    )
-                ).values().stream().flatMap(Optional::stream);
-                if (high == FIVE) { // wheel
-                    return cards.sorted(reverseLowball).dropWhile(card -> card.rank() != high);
-                } else {
-                    return cards.sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
-                }
-            }
-        },
-
-        FLUSH(7, 1_277, 4_047_644) {
-            @Override
-            Stream<Card> cards(Hand hand) {
-                return flush(hand, reverseOrder()).limit(5);
-            }
-        },
-
-        FULL_HOUSE(4, 156, 3_473_184),
-
-        FOUR_OF_A_KIND(5, 156, 224_848) {
-            @Override
-            Stream<Card> cards(Hand hand) {
-                var quads = Category.unpack(hand).limit(4);
-                var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
-                return Stream.concat(quads, kicker);
-            }
-        },
-
-        STRAIGHT_FLUSH(2, 10, 41_584) {
-            @Override
-            Stream<Card> cards(Hand hand) {
-                var high = Rank.unpack(hand.evaluate());
-                if (high == FIVE) { // steel wheel
-                    return flush(hand, reverseLowball).dropWhile(card -> card.rank() != high);
-                } else {
-                    return flush(hand, reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
-                }
-            }
-        };
-
-        private static final Comparator<Card> reverseLowball = comparingInt(card -> -(card.rank().ordinal() + 1) % 13);
-
-        private static final int SHIFT = 26;
-
-        private static final Category[] values = Category.values();
-
-        private final int bitCount;
-
-        private final int classes;
-
-        private final int hands;
-
-        Category(int bitCount, int classes, int hands) {
-            this.bitCount = bitCount;
-            this.classes = classes;
-            this.hands = hands;
-        }
-
-        private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
-            return Cards.unpack(hand.cards).collect(
-                groupingBy(
-                    Card::suit,
-                    () -> new EnumMap<>(Suit.class),
-                    toCollection(() -> new TreeSet<>(order))
-                )
-            ).entrySet().stream().max(
-                comparingByValue(comparingInt(Set::size))
-            ).stream().map(Entry::getValue).flatMap(Set::stream);
-        }
-
-        static Category unpack(int value) {
-            return Category.values[value >>> Category.SHIFT];
-        }
-
-        Stream<Card> cards(Hand hand) {
-            return Category.unpack(hand).limit(5);
-        }
-
-        static Stream<Card> unpack(Hand hand) {
-            return Cards.unpack(hand.cards).collect(
-                groupingBy(
-                    Card::rank,
-                    () -> new EnumMap<>(Rank.class),
-                    toCollection(() -> new TreeSet<>(comparing(Card::suit).reversed()))
-                )
-            ).entrySet().stream().sorted(
-                comparingInt(
-                    (Entry<Rank, TreeSet<Card>> entry) -> entry.getValue().size()
-                ).thenComparing(Entry::getKey).reversed()
-            ).map(Entry::getValue).flatMap(Set::stream);
-        }
-
-        final int pack(long ranks) {
-            return (this.ordinal() << Category.SHIFT) | (int) ranks;
-        }
-
-        final int bitCount() {
-            return bitCount;
-        }
-
-        final int classes() {
-            return classes;
-        }
-
-        final int hands() {
-            return hands;
-        }
-    }
+    private static final Hand EMPTY = new Hand(0L, 0L, 0, 0, 0);
 
     /**
      * A bit vector of the cards in this hand.
@@ -204,7 +56,7 @@ public final class Hand implements Comparable<Hand> {
      */
     final short count;
 
-    Hand(long cards, long ranks, int suits, int kickers, int count) {
+    private Hand(long cards, long ranks, int suits, int kickers, int count) {
         this.cards = cards;
         this.ranks = ranks;
         this.suits = suits;
@@ -212,16 +64,8 @@ public final class Hand implements Comparable<Hand> {
         this.count = (short) count;
     }
 
-    public Hand() {
-        this(0L, 0L, 0, 0, 0);
-    }
-
-    static Hand hand(Card... cards) {
-        var hand = new Hand();
-        for (var card : cards) {
-            hand = hand.deal(card);
-        }
-        return hand;
+    public static Hand empty() {
+        return EMPTY;
     }
 
     public Hand deal(Card card) {
@@ -238,10 +82,10 @@ public final class Hand implements Comparable<Hand> {
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var suit = 31 - Integer.numberOfLeadingZeros(suits);
-                var flush = (int) (cards >>> ((suit & 3) * 13)) & (-1 >>> -13); // suit & 3 == suit % 4
-                var count = (suit >>> 2) + 1; // suit >>> 2 == suit / 4
-                var straightFlush = straight(flush, count);
+                var count = suits < 1 << 20 ? 5 : suits < 1 << 24 ? 6 : 7;
+                var suit = suits >>> ((count - 1) << 2);
+                var flush = (cards >>> (((suit >>> 1) - (suit >>> 3)) * 13)) & (-1 >>> -13);
+                var straightFlush = straight((int) flush, count);
                 if (straightFlush != 0) {
                     return STRAIGHT_FLUSH.pack(straightFlush);
                 } else {

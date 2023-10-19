@@ -9,6 +9,14 @@ public final class Board extends Cards {
         super(cards);
     }
 
+    Hand hand() {
+        var hand = Hand.empty();
+        for (var card : cards) {
+            hand = hand.deal(card);
+        }
+        return hand;
+    }
+
     public static Board flop(Card first, Card second, Card third) {
         return new Board(first, second, third);
     }
