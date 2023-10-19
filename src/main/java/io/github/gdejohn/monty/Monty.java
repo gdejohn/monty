@@ -4,12 +4,16 @@ import static java.lang.Integer.signum;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import static java.math.RoundingMode.HALF_EVEN;
+
+import java.util.EnumSet;
 import java.util.Spliterator;
 import java.util.SplittableRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 import static java.util.stream.Collectors.collectingAndThen;
+
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -18,6 +22,7 @@ import static io.github.gdejohn.monty.Deck.deck;
 import static io.github.gdejohn.monty.Showdown.LOSS;
 import io.github.gdejohn.monty.Showdown.Tie;
 import static io.github.gdejohn.monty.Showdown.WIN;
+import static java.util.stream.Collectors.toSet;
 
 public final class Monty {
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
@@ -110,16 +115,14 @@ public final class Monty {
 
         if (opponents < 1 || opponents > 22) {
             throw new IllegalArgumentException(
-                String.format("opponents = %d (must be greater than 0 and less than 23)", opponents)
+                STR."opponents = \{opponents} (must be greater than 0 and less than 23)"
             );
         } else if ((pocket.pack() & board.pack()) != 0) {
             throw new IllegalArgumentException(
-                String.format(
-                    "pocket %s and board %s must be disjoint, but both contain %s",
-                    pocket,
-                    board,
-                    Cards.toString(Cards.unpack(pocket.pack() & board.pack()))
-                )
+                STR."""
+                    pocket \{pocket} and board \{board} must be disjoint, but both contain
+                    \{Cards.toString(Cards.unpack(pocket.pack() & board.pack()))}
+                """
             );
         } else {
             return StreamSupport.stream(
