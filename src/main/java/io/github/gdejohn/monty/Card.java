@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-public record Card(Rank rank, Suit suit) implements Comparable<Card> {
+public record Card(Rank rank, Suit suit) {
     static sealed abstract class Cards permits Board, Pocket {
         final Card[] cards;
 
@@ -167,11 +167,6 @@ public record Card(Rank rank, Suit suit) implements Comparable<Card> {
 
     public Suit suit() {
         return suit;
-    }
-
-    @Override
-    public int compareTo(Card card) {
-        return rank.compareTo(card.rank);
     }
 
     @Override

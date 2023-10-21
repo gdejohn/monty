@@ -4,7 +4,6 @@ import static io.github.gdejohn.monty.Card.Rank.FIVE;
 import static java.util.Arrays.stream;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.Comparator.reverseOrder;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.maxBy;
@@ -52,7 +51,9 @@ public enum Category {
             if (high == FIVE) { // wheel
                 return cards.sorted(reverseLowball).dropWhile(card -> card.rank() != high);
             } else {
-                return cards.sorted(reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
+                return cards.sorted(comparing(Card::rank).reversed()).dropWhile(
+                    card -> card.rank() != high
+                ).limit(5);
             }
         }
     },
@@ -60,7 +61,7 @@ public enum Category {
     FLUSH(7, 1_277, 4_047_644) {
         @Override
         Stream<Card> cards(Hand hand) {
-            return flush(hand, reverseOrder()).limit(5);
+            return flush(hand, comparing(Card::rank).reversed()).limit(5);
         }
     },
 
@@ -82,7 +83,9 @@ public enum Category {
             if (high == FIVE) { // steel wheel
                 return flush(hand, reverseLowball).dropWhile(card -> card.rank() != high);
             } else {
-                return flush(hand, reverseOrder()).dropWhile(card -> card.rank() != high).limit(5);
+                return flush(hand, comparing(Card::rank).reversed()).dropWhile(
+                    card -> card.rank() != high
+                ).limit(5);
             }
         }
     };
