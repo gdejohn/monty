@@ -1,25 +1,24 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Showdown.loss;
-import static io.github.gdejohn.monty.Showdown.tie;
-import static io.github.gdejohn.monty.Showdown.win;
-import static java.lang.Integer.signum;
+import io.github.gdejohn.monty.Card.Cards;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
-import static java.math.RoundingMode.HALF_EVEN;
-
 import java.util.Spliterator;
 import java.util.SplittableRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
-import static java.util.stream.Collector.Characteristics.UNORDERED;
-import static java.util.stream.Collectors.collectingAndThen;
-
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import io.github.gdejohn.monty.Card.Cards;
 import static io.github.gdejohn.monty.Deck.deck;
+import static io.github.gdejohn.monty.Showdown.loss;
+import static io.github.gdejohn.monty.Showdown.tie;
+import static io.github.gdejohn.monty.Showdown.win;
+import static java.lang.Integer.signum;
+import static java.math.RoundingMode.HALF_EVEN;
+import static java.util.stream.Collector.Characteristics.UNORDERED;
+import static java.util.stream.Collectors.collectingAndThen;
 
 public final class Monty {
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
@@ -140,10 +139,9 @@ public final class Monty {
              */
             private static final long pot = 5_354_228_880L;
 
-            private static final long[] shares;
+            private static final long[] shares = new long[24];
 
             static {
-                shares = new long[24];
                 for (var split = 1; split < shares.length; split++) {
                     shares[split] = pot / split;
                 }

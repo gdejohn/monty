@@ -5,42 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.gdejohn</groupId>
-    <artifactId>monty</artifactId>
+    <artifactId>monty-library</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>monty</name>
-    <description>Fast hand evaluation for Texas hold 'em</description>
-    <url>https://github.com/gdejohn/monty</url>
-    <licenses>
-        <license>
-            <name>Apache License 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <name>Griffin DeJohn</name>
-            <url>https://github.com/gdejohn</url>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>scm:git:https://github.com/gdejohn/monty.git</connection>
-        <developerConnection>scm:git:git@github.com:gdejohn/monty.git</developerConnection>
-        <url>https://github.com/gdejohn/monty</url>
-    </scm>
-    <issueManagement>
-        <system>GitHub</system>
-        <url>https://github.com/gdejohn/monty/issues</url>
-    </issueManagement>
-    <distributionManagement>
-        <downloadUrl>https://github.com/gdejohn/monty/releases</downloadUrl>
-    </distributionManagement>
+    <name>monty library</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <release>21</release>
     </properties>
 
     <dependencyManagement>
@@ -75,7 +48,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>${release}</release>
                     <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
@@ -104,7 +77,9 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
+                    <release>${release}</release>
                     <additionalOptions>
+                        <additionalOption>--enable-preview</additionalOption>
                         <additionalOption>--override-methods=summary</additionalOption>
                     </additionalOptions>
                     <nodeprecatedlist>true</nodeprecatedlist>
@@ -139,6 +114,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
+                <configuration>
+                    <argLine>--enable-preview</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

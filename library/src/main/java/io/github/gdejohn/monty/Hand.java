@@ -1,5 +1,9 @@
 package io.github.gdejohn.monty;
 
+import io.github.gdejohn.monty.Card.Cards;
+
+import java.util.stream.Stream;
+
 import static io.github.gdejohn.monty.Category.FLUSH;
 import static io.github.gdejohn.monty.Category.FOUR_OF_A_KIND;
 import static io.github.gdejohn.monty.Category.FULL_HOUSE;
@@ -9,10 +13,6 @@ import static io.github.gdejohn.monty.Category.STRAIGHT;
 import static io.github.gdejohn.monty.Category.STRAIGHT_FLUSH;
 import static io.github.gdejohn.monty.Category.THREE_OF_A_KIND;
 import static io.github.gdejohn.monty.Category.TWO_PAIR;
-
-import java.util.stream.Stream;
-
-import io.github.gdejohn.monty.Card.Cards;
 
 public final class Hand implements Comparable<Hand> {
     private static final Hand EMPTY = new Hand(0L, 0L, 0, 0, 0);

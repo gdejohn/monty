@@ -1,10 +1,10 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Board.PRE_FLOP;
-import static io.github.gdejohn.monty.Card.cards;
-
 import java.util.Arrays;
 import java.util.SplittableRandom;
+
+import static io.github.gdejohn.monty.Board.PRE_FLOP;
+import static io.github.gdejohn.monty.Card.cards;
 
 public class Deck {
     private static final long DECK = -1L >>> -52;
