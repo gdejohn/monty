@@ -1,11 +1,13 @@
 package io.github.gdejohn.monty;
 
+import static io.github.gdejohn.monty.Showdown.loss;
+import static io.github.gdejohn.monty.Showdown.tie;
+import static io.github.gdejohn.monty.Showdown.win;
 import static java.lang.Integer.signum;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import static java.math.RoundingMode.HALF_EVEN;
 
-import java.util.EnumSet;
 import java.util.Spliterator;
 import java.util.SplittableRandom;
 import java.util.function.Consumer;
@@ -13,16 +15,11 @@ import java.util.stream.Collector;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 import static java.util.stream.Collectors.collectingAndThen;
 
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import io.github.gdejohn.monty.Card.Cards;
 import static io.github.gdejohn.monty.Deck.deck;
-import static io.github.gdejohn.monty.Showdown.LOSS;
-import io.github.gdejohn.monty.Showdown.Tie;
-import static io.github.gdejohn.monty.Showdown.WIN;
-import static java.util.stream.Collectors.toSet;
 
 public final class Monty {
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
@@ -97,13 +94,13 @@ public final class Monty {
                     trials--;
                     var board = deck.deal(partial, deck.size() - 45);
                     var value = pocket.evaluate(board);
-                    Showdown outcome = WIN;
-                    for (var i = 0; i < opponents; i++) {
+                    Showdown outcome = win();
+                    for (var opponent = 0; opponent < opponents; opponent++) {
                         switch (signum(value - deck.deal(board, 2).evaluate())) {
-                            case 0: outcome = new Tie(outcome.split() + 1);
+                            case 0: outcome = tie(outcome.split() + 1);
                             case 1: continue;
                         }
-                        outcome = LOSS;
+                        outcome = loss();
                         break;
                     }
                     deck.shuffle();
