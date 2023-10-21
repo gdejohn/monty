@@ -82,7 +82,7 @@ public final class Hand implements Comparable<Hand> {
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var count = suits < 1 << 20 ? 5 : suits < 1 << 24 ? 6 : 7;
+                var count = (suits < (1 << 20)) ? 5 : ((suits < (1 << 24)) ? 6 : 7);
                 var suit = suits >>> ((count - 1) << 2);
                 var flush = (cards >>> (((suit >>> 1) - (suit >>> 3)) * 13)) & (-1 >>> -13);
                 var straightFlush = straight((int) flush, count);
