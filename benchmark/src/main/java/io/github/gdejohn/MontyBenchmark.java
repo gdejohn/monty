@@ -39,7 +39,6 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.NINE;
-import static io.github.gdejohn.monty.Card.Rank.SEVEN;
 import static io.github.gdejohn.monty.Card.Rank.TEN;
 import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.DIAMONDS;
@@ -54,13 +53,13 @@ public class MontyBenchmark {
     @OutputTimeUnit(SECONDS)
     public int evaluate() {
         var hand = Hand.empty();
-        hand.deal(SEVEN.of(CLUBS));
-        hand.deal(TEN.of(CLUBS));
-        hand.deal(ACE.of(HEARTS));
-        hand.deal(ACE.of(SPADES));
-        hand.deal(ACE.of(DIAMONDS));
         hand.deal(EIGHT.of(CLUBS));
         hand.deal(NINE.of(CLUBS));
+        hand.deal(NINE.of(DIAMONDS));
+        hand.deal(TEN.of(CLUBS));
+        hand.deal(TEN.of(HEARTS));
+        hand.deal(ACE.of(DIAMONDS));
+        hand.deal(ACE.of(SPADES));
         return hand.evaluate();
     }
 }

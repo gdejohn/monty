@@ -13,31 +13,41 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
-import static io.github.gdejohn.monty.Showdown.loss;
-import static io.github.gdejohn.monty.Showdown.tie;
-import static io.github.gdejohn.monty.Showdown.win;
 import static java.lang.Integer.signum;
 import static java.math.RoundingMode.HALF_EVEN;
-import static java.util.stream.Collector.Characteristics.UNORDERED;
 import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.summarizingLong;
 
 public final class Monty {
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
+
+    /**
+     * Least common multiple of the integers from 1 to 23, inclusive.
+     */
+    private static final long LCM = 5_354_228_880L;
+
+    private static final long[] shares = new long[24];
+
+    static {
+        for (var split = 1; split < shares.length; split++) {
+            shares[split] = LCM / split;
+        }
+    }
 
     private Monty() {
         throw new AssertionError("this class is not intended to be instantiated");
     }
 
-    public static Stream<Showdown> simulate(int opponents, Pocket pocket, Board board) {
-        return simulate(new SplittableRandom(), opponents, pocket, board);
+    public static Stream<Integer> splits(int opponents, Pocket pocket, Board board) {
+        return splits(new SplittableRandom(), opponents, pocket, board);
     }
 
-    public static Stream<Showdown> simulate(int opponents, Pocket pocket) {
-        return simulate(opponents, pocket, Board.PRE_FLOP);
+    public static Stream<Integer> splits(int opponents, Pocket pocket) {
+        return splits(opponents, pocket, Board.PRE_FLOP);
     }
 
-    static Stream<Showdown> simulate(SplittableGenerator rng, int opponents, Pocket pocket, Board board) {
-        class Showdowns implements Spliterator<Showdown> {
+    static Stream<Integer> splits(SplittableGenerator rng, int opponents, Pocket pocket, Board board) {
+        class Splits implements Spliterator<Integer> {
             private final Deck deck;
 
             private final Pocket pocket;
@@ -46,7 +56,7 @@ public final class Monty {
 
             private long trials;
 
-            Showdowns(Deck deck, Pocket pocket, Hand partial, long trials) {
+            Splits(Deck deck, Pocket pocket, Hand partial, long trials) {
                 this.deck = deck;
                 this.pocket = pocket;
                 this.partial = partial;
@@ -64,11 +74,11 @@ public final class Monty {
             }
 
             @Override
-            public Showdowns trySplit() {
+            public Splits trySplit() {
                 if (trials < 2) {
                     return null;
                 } else {
-                    return new Showdowns(
+                    return new Splits(
                         deck.split(),
                         pocket,
                         partial,
@@ -78,24 +88,24 @@ public final class Monty {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super Showdown> action) {
+            public boolean tryAdvance(Consumer<? super Integer> action) {
                 if (trials < 1) {
                     return false;
                 } else {
                     trials--;
+                    deck.shuffle();
                     var board = deck.deal(partial, deck.size() - 45);
                     var value = pocket.evaluate(board);
-                    Showdown outcome = win();
-                    for (var opponent = 0; opponent < opponents; opponent++) {
+                    var split = 1;
+                    for (var n = 0; n < opponents; n++) {
                         switch (signum(value - deck.deal(board, 2).evaluate())) {
-                            case 0: outcome = tie(outcome.split() + 1);
+                            case 0: split++;
                             case 1: continue;
                         }
-                        outcome = loss();
+                        split = 0;
                         break;
                     }
-                    deck.shuffle();
-                    action.accept(outcome);
+                    action.accept(split);
                     return true;
                 }
             }
@@ -114,7 +124,7 @@ public final class Monty {
             );
         } else {
             return StreamSupport.stream(
-                new Showdowns(
+                new Splits(
                     deck(board, pocket, rng),
                     pocket,
                     board.hand(),
@@ -125,62 +135,25 @@ public final class Monty {
         }
     }
 
-    public static Collector<Showdown, ?, BigDecimal> equity() {
+    public static Collector<Integer, ?, BigDecimal> equity() {
         return equity(DEFAULT_CONTEXT);
     }
 
-    public static Collector<Showdown, ?, BigDecimal> equity(MathContext context) {
-        final class Equity {
-            /**
-             * Least common multiple of the integers from 1 to 23, inclusive.
-             */
-            private static final long pot = 5_354_228_880L;
-
-            private static final long[] shares = new long[24];
-
-            static {
-                for (var split = 1; split < shares.length; split++) {
-                    shares[split] = pot / split;
-                }
-            }
-            
-            private long winnings = 0L;
-
-            private int trials = 0;
-            
-            void accumulate(Showdown showdown) {
-                winnings += shares[showdown.split()];
-                trials++;
-            }
-
-            Equity combine(Equity that) {
-                this.winnings += that.winnings;
-                this.trials += that.trials;
-                return this;
-            }
-
-            BigDecimal finish() {
-                return BigDecimal.valueOf(winnings).divide(
-                    BigDecimal.valueOf(pot).multiply(BigDecimal.valueOf(trials)),
-                    context
-                );
-            }
-        }
-
-        return Collector.of(
-            Equity::new,
-            Equity::accumulate,
-            Equity::combine,
-            Equity::finish,
-            UNORDERED
+    public static Collector<Integer, ?, BigDecimal> equity(MathContext context) {
+        return collectingAndThen(
+            summarizingLong(split -> shares[split]),
+            stats -> BigDecimal.valueOf(stats.getSum()).divide(
+                BigDecimal.valueOf(LCM).multiply(BigDecimal.valueOf(stats.getCount())),
+                context
+            )
         );
     }
 
-    public static Collector<Showdown, ?, BigDecimal> expectedValue(long pot, long raise) {
+    public static Collector<Integer, ?, BigDecimal> expectedValue(long pot, long raise) {
         return expectedValue(pot, raise, DEFAULT_CONTEXT);
     }
 
-    public static Collector<Showdown, ?, BigDecimal> expectedValue(long pot, long raise, MathContext context) {
+    public static Collector<Integer, ?, BigDecimal> expectedValue(long pot, long raise, MathContext context) {
         if (pot <= 0.0d) {
             throw new IllegalArgumentException(STR."pot = \{pot} (must be positive)");
         } else if (raise <= 0.0d) {
@@ -190,10 +163,13 @@ public final class Monty {
         }
     }
 
-    private static Collector<Showdown, ?, BigDecimal> expectedValue(BigDecimal pot, BigDecimal raise, MathContext context) {
+    private static Collector<Integer, ?, BigDecimal> expectedValue(BigDecimal pot, BigDecimal raise, MathContext context) {
         return collectingAndThen(
-            equity(context),
-            equity -> equity.multiply(pot.add(raise)).divide(raise, context)
+            summarizingLong(split -> shares[split]),
+            stats -> BigDecimal.valueOf(stats.getSum()).multiply(pot.add(raise)).divide(
+                BigDecimal.valueOf(stats.getCount()).multiply(raise).multiply(BigDecimal.valueOf(LCM)),
+                context
+            )
         );
     }
 }
