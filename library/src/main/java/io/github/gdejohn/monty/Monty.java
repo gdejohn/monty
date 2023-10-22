@@ -7,6 +7,7 @@ import java.math.MathContext;
 import java.util.Spliterator;
 import java.util.SplittableRandom;
 import java.util.function.Consumer;
+import java.util.random.RandomGenerator.SplittableGenerator;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -27,15 +28,15 @@ public final class Monty {
         throw new AssertionError("this class is not intended to be instantiated");
     }
 
-    public static Stream<Showdown> simulate(int opponents, int trials, Pocket pocket, Board board) {
-        return simulate(new SplittableRandom(), opponents, trials, pocket, board);
+    public static Stream<Showdown> simulate(int opponents, Pocket pocket, Board board) {
+        return simulate(new SplittableRandom(), opponents, pocket, board);
     }
 
-    public static Stream<Showdown> simulate(int opponents, int trials, Pocket pocket) {
-        return simulate(opponents, trials, pocket, Board.PRE_FLOP);
+    public static Stream<Showdown> simulate(int opponents, Pocket pocket) {
+        return simulate(opponents, pocket, Board.PRE_FLOP);
     }
 
-    static Stream<Showdown> simulate(SplittableRandom rng, int opponents, int trials, Pocket pocket, Board board) {
+    static Stream<Showdown> simulate(SplittableGenerator rng, int opponents, Pocket pocket, Board board) {
         class Showdowns implements Spliterator<Showdown> {
             private final Deck deck;
 
@@ -43,22 +44,13 @@ public final class Monty {
 
             private final Hand partial;
 
-            private int trials;
+            private long trials;
 
-            Showdowns(Deck deck, Pocket pocket, Hand partial, int trials) {
+            Showdowns(Deck deck, Pocket pocket, Hand partial, long trials) {
                 this.deck = deck;
                 this.pocket = pocket;
                 this.partial = partial;
                 this.trials = trials;
-            }
-
-            Showdowns(SplittableRandom rng, Pocket pocket, Board board, int trials) {
-                this(
-                    deck(board, pocket, rng),
-                    pocket,
-                    board.hand(),
-                    trials
-                );
             }
 
             @Override
@@ -122,7 +114,12 @@ public final class Monty {
             );
         } else {
             return StreamSupport.stream(
-                new Showdowns(rng, pocket, board, trials),
+                new Showdowns(
+                    deck(board, pocket, rng),
+                    pocket,
+                    board.hand(),
+                    Long.MAX_VALUE
+                ),
                 true // parallel
             );
         }

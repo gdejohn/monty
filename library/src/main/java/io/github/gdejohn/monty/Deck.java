@@ -2,6 +2,7 @@ package io.github.gdejohn.monty;
 
 import java.util.Arrays;
 import java.util.SplittableRandom;
+import java.util.random.RandomGenerator.SplittableGenerator;
 
 import static io.github.gdejohn.monty.Board.PRE_FLOP;
 import static io.github.gdejohn.monty.Card.cards;
@@ -9,19 +10,19 @@ import static io.github.gdejohn.monty.Card.cards;
 public class Deck {
     private static final long DECK = -1L >>> -52;
     
-    private final SplittableRandom rng;
+    private final SplittableGenerator rng;
     
     private final Card[] cards;
 
     private int bound;
 
-    private Deck(Card[] cards, SplittableRandom rng) {
+    private Deck(Card[] cards, SplittableGenerator rng) {
         this.cards = cards;
         this.rng = rng;
         shuffle();
     }
 
-    static Deck deck(Board board, Pocket pocket, SplittableRandom rng) {
+    static Deck deck(Board board, Pocket pocket, SplittableGenerator rng) {
         var deck = DECK ^ board.pack() ^ pocket.pack();
         var cards = new Card[Long.bitCount(deck)];
         for (var index = 0; index < cards.length; index++) {
