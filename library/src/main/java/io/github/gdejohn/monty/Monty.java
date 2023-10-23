@@ -4,6 +4,7 @@ import io.github.gdejohn.monty.Card.Cards;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.LongSummaryStatistics;
 import java.util.Spliterator;
 import java.util.SplittableRandom;
 import java.util.function.Consumer;
@@ -13,41 +14,89 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
+import static io.github.gdejohn.monty.Showdown.LOSS;
+import static io.github.gdejohn.monty.Showdown.WIN;
+import static io.github.gdejohn.monty.Showdown.nextSplit;
 import static java.lang.Integer.signum;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.summarizingLong;
 
 public final class Monty {
-    private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
-
-    /**
-     * Least common multiple of the integers from 1 to 23, inclusive.
-     */
-    private static final long LCM = 5_354_228_880L;
+    private static final BigDecimal LCM = BigDecimal.valueOf(5_354_228_880L);
 
     private static final long[] shares = new long[24];
 
     static {
         for (var split = 1; split < shares.length; split++) {
-            shares[split] = LCM / split;
+            shares[split] = LCM.longValueExact() / split;
         }
     }
 
-    private Monty() {
-        throw new AssertionError("this class is not intended to be instantiated");
+    private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
+
+    final BigDecimal share;
+    final BigDecimal trials;
+
+    private Monty(LongSummaryStatistics stats) {
+        this.share = BigDecimal.valueOf(stats.getSum());
+        this.trials = BigDecimal.valueOf(stats.getCount());
     }
 
-    public static Stream<Integer> splits(int opponents, Pocket pocket, Board board) {
+    public static Collector<Showdown, ?, Monty> monty() {
+        return collectingAndThen(
+            summarizingLong(showdown -> shares[showdown.split()]),
+            Monty::new
+        );
+    }
+
+    public BigDecimal equity() {
+        return equity(DEFAULT_CONTEXT);
+    }
+
+    public BigDecimal equity(MathContext context) {
+        return share.divide(trials.multiply(LCM), context);
+    }
+
+    private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
+        return share.multiply(pot.add(raise)).divide(
+            trials.multiply(LCM).multiply(raise),
+            context
+        );
+    }
+
+    public BigDecimal expectedValue(long raise, long pot, MathContext context) {
+        if (pot <= 0.0d) {
+            throw new IllegalArgumentException(STR."pot = \{pot} (must be positive)");
+        } else if (raise <= 0.0d) {
+            throw new IllegalArgumentException(STR."raise = \{raise} (must be positive)");
+        } else {
+            return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
+        }
+    }
+
+    /**
+     * The expected value of calling a given raise.
+     *
+     * <p>Note that the {@code pot} includes the raise, but not the call.
+     *
+     * @param raise the raise that a player is deciding whether to call
+     * @param pot   the size of the pot
+     */
+    public BigDecimal expectedValue(long raise, long pot) {
+        return expectedValue(raise, pot, DEFAULT_CONTEXT);
+    }
+
+    public static Stream<Showdown> splits(int opponents, Pocket pocket, Board board) {
         return splits(new SplittableRandom(), opponents, pocket, board);
     }
 
-    public static Stream<Integer> splits(int opponents, Pocket pocket) {
+    public static Stream<Showdown> splits(int opponents, Pocket pocket) {
         return splits(opponents, pocket, Board.PRE_FLOP);
     }
 
-    static Stream<Integer> splits(SplittableGenerator rng, int opponents, Pocket pocket, Board board) {
-        class Splits implements Spliterator<Integer> {
+    static Stream<Showdown> splits(SplittableGenerator rng, int opponents, Pocket pocket, Board board) {
+        final class Splits implements Spliterator<Showdown> {
             private final Deck deck;
 
             private final Pocket pocket;
@@ -88,7 +137,7 @@ public final class Monty {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super Integer> action) {
+            public boolean tryAdvance(Consumer<? super Showdown> action) {
                 if (trials < 1) {
                     return false;
                 } else {
@@ -96,16 +145,16 @@ public final class Monty {
                     deck.shuffle();
                     var board = deck.deal(partial, deck.size() - 45);
                     var value = pocket.evaluate(board);
-                    var split = 1;
+                    Showdown outcome = WIN;
                     for (var n = 0; n < opponents; n++) {
                         switch (signum(value - deck.deal(board, 2).evaluate())) {
-                            case 0: split++;
+                            case 0: outcome = nextSplit(outcome);
                             case 1: continue;
                         }
-                        split = 0;
+                        outcome = LOSS;
                         break;
                     }
-                    action.accept(split);
+                    action.accept(outcome);
                     return true;
                 }
             }
@@ -133,43 +182,5 @@ public final class Monty {
                 true // parallel
             );
         }
-    }
-
-    public static Collector<Integer, ?, BigDecimal> equity() {
-        return equity(DEFAULT_CONTEXT);
-    }
-
-    public static Collector<Integer, ?, BigDecimal> equity(MathContext context) {
-        return collectingAndThen(
-            summarizingLong(split -> shares[split]),
-            stats -> BigDecimal.valueOf(stats.getSum()).divide(
-                BigDecimal.valueOf(LCM).multiply(BigDecimal.valueOf(stats.getCount())),
-                context
-            )
-        );
-    }
-
-    public static Collector<Integer, ?, BigDecimal> expectedValue(long pot, long raise) {
-        return expectedValue(pot, raise, DEFAULT_CONTEXT);
-    }
-
-    public static Collector<Integer, ?, BigDecimal> expectedValue(long pot, long raise, MathContext context) {
-        if (pot <= 0.0d) {
-            throw new IllegalArgumentException(STR."pot = \{pot} (must be positive)");
-        } else if (raise <= 0.0d) {
-            throw new IllegalArgumentException(STR."raise = \{raise} (must be positive)");
-        } else {
-            return expectedValue(BigDecimal.valueOf(pot), BigDecimal.valueOf(raise), context);
-        }
-    }
-
-    private static Collector<Integer, ?, BigDecimal> expectedValue(BigDecimal pot, BigDecimal raise, MathContext context) {
-        return collectingAndThen(
-            summarizingLong(split -> shares[split]),
-            stats -> BigDecimal.valueOf(stats.getSum()).multiply(pot.add(raise)).divide(
-                BigDecimal.valueOf(stats.getCount()).multiply(raise).multiply(BigDecimal.valueOf(LCM)),
-                context
-            )
-        );
     }
 }
