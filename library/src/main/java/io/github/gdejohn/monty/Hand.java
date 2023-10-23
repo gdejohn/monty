@@ -82,7 +82,7 @@ public final class Hand implements Comparable<Hand> {
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var count = (suits < (1 << 20)) ? 5 : ((suits < (1 << 24)) ? 6 : 7);
+                var count = suits < 1 << 20 ? 5 : suits < 1 << 24 ? 6 : 7;
                 var suit = suits >>> ((count - 1) << 2);
                 var flush = (cards >>> (((suit >>> 1) - (suit >>> 3)) * 13)) & (-1 >>> -13);
                 var straightFlush = straight((int) flush, count);
@@ -131,7 +131,7 @@ public final class Hand implements Comparable<Hand> {
      *
      * @return the high rank of the straight, or {@code 0} if there is no straight
      */
-    static int straight(int ranks, int count) {
+    private static int straight(int ranks, int count) {
         var wheel = ~((ranks << 1) | (ranks >>> 12));
         wheel = ((wheel & -wheel) >>> 5) << 3;
         if (wheel != 0) {
@@ -156,7 +156,7 @@ public final class Hand implements Comparable<Hand> {
      * 
      * @return the selected bits
      */
-    static long select(long bits, int n) {
+    private static long select(long bits, int n) {
         while (n-- > 0) {
             bits &= bits - 1;
         }
@@ -184,7 +184,7 @@ public final class Hand implements Comparable<Hand> {
     }
 
     public Category category() {
-        return Category.unpack(this.evaluate());
+        return Category.unpack(evaluate());
     }
 
     public Stream<Card> cards() {
