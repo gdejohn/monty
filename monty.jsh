@@ -1,4 +1,4 @@
-/env -module-path target\classes -add-module io.github.gdejohn.monty
+/env -module-path library\target\classes -add-module io.github.gdejohn.monty
 import io.github.gdejohn.monty.*;
 import static io.github.gdejohn.monty.Board.*;
 import static io.github.gdejohn.monty.Card.*;
