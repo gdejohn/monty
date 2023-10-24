@@ -11,8 +11,8 @@ void main() {
     var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
     var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
 
-    // an infinite, unordered stream of simulated games, works in
-    // parallel across any number of threads
+    // a lazy, infinite, parallel stream of simulated games,
+    // throughput scales linearly with number of threads
     Stream<Showdown> splits = splits(opponents, pocket, board);
 
     // custom collector returns object that can calculate equity
@@ -30,7 +30,8 @@ void main() {
     var pot = 100;
     var raise = 50;
 
-    // the ratio of expected winnings to the size of a raise
+    // an approximation of the ratio of expected winnings to the
+    // size of a raise
     BigDecimal expectedValue = monty.expectedValue(raise, pot);
     if (expectedValue.doubleValue() > 1.0d) {
         // call!
