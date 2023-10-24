@@ -30,9 +30,9 @@ void main() {
     var pot = 100;
     var raise = 50;
 
-    // expected value is the ratio of expected winnings to the
-    // size of a raise
-    if (monty.expectedValue(raise, pot).doubleValue() > 1.0d) {
+    // the ratio of expected winnings to the size of a raise
+    BigDecimal expectedValue = monty.expectedValue(raise, pot);
+    if (expectedValue.doubleValue() > 1.0d) {
         // call!
     } else {
         // fold!

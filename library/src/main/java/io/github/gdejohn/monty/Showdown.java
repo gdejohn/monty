@@ -1,26 +1,28 @@
 package io.github.gdejohn.monty;
 
+import java.math.BigDecimal;
+
+import static java.math.MathContext.UNLIMITED;
+
 public sealed interface Showdown {
     /**
      * Least common multiple of the integers from 1 to 23, inclusive.
      */
-    public static final Win WIN = new Win();
+    static final BigDecimal LCM = BigDecimal.valueOf(5_354_228_880L);
 
-    public static final Loss LOSS = new Loss();
+    static final long[] winnings = winnings();
 
-    public record Win() implements Showdown {
-        @Override
-        public int split() {
-            return 1;
+    private static long[] winnings() {
+        var winnings = new long[24];
+        for (var split = 1; split < winnings.length; split++) {
+            winnings[split] = LCM.divide(BigDecimal.valueOf(split), UNLIMITED).longValue();
         }
+        return winnings;
     }
 
-    public record Loss() implements Showdown {
-        @Override
-        public int split() {
-            return 0;
-        }
-    }
+    public record Win() implements Showdown {}
+
+    public record Loss() implements Showdown {}
 
     public record Tie(int split) implements Showdown {
         public Tie {
@@ -30,9 +32,23 @@ public sealed interface Showdown {
         }
     }
 
-    int split();
+    static final Win WIN = new Win();
 
-    static Tie nextSplit(Showdown showdown) {
-        return new Tie(showdown.split() + 1);
+    static final Loss LOSS = new Loss();
+
+    static Showdown showdown(int split) {
+        return switch (split) {
+            case 1 -> WIN;
+            case 0 -> LOSS;
+            default -> new Tie(split);
+        };
+    }
+
+    static long winnings(Showdown showdown) {
+        return switch (showdown) {
+            case Tie(var split) -> winnings[split];
+            case Win() -> winnings[1];
+            case Loss() -> winnings[0];
+        };
     }
 }

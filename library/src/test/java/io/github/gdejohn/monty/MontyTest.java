@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 
 class MontyTest {
-    private static final int trials = 1 << 20;
+    private static final long trials = 1L << 20;
 
     private static Stream<Showdown> splits() {
         var seed = 7590512158799335833L;
@@ -33,17 +33,21 @@ class MontyTest {
     @Test
     void equity() {
         var monty = splits().limit(trials).collect(monty());
-        assertThat(monty.trials.intValueExact()).isEqualTo(trials);
+        assertThat(monty.trials()).isEqualTo(trials);
         assertThat(monty.equity()).hasToString("0.5228");
     }
 
     @Test
-    void equitySequential() {
-        var limitFirst = splits().limit(trials).sequential().collect(monty());
-        var limitLast = splits().sequential().limit(trials).collect(monty());
-        assertThat(limitFirst.trials.intValueExact()).isEqualTo(trials);
-        assertThat(limitFirst.equity()).hasToString("0.5228");
-        assertThat(limitLast.trials.intValueExact()).isEqualTo(trials);
-        assertThat(limitLast.equity()).hasToString("0.5228");
+    void equitySequentialFirst() {
+        var splits = splits().sequential().limit(trials).collect(monty());
+        assertThat(splits.trials()).isEqualTo(trials);
+        assertThat(splits.equity()).hasToString("0.5228");
+    }
+
+    @Test
+    void equitySequentialLast() {
+        var splits = splits().limit(trials).sequential().collect(monty());
+        assertThat(splits.trials()).isEqualTo(trials);
+        assertThat(splits.equity()).hasToString("0.5228");
     }
 }
