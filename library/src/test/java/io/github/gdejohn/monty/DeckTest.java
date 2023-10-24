@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.github.gdejohn.monty.Deck.deck;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DeckTest {
     @SuppressWarnings("InfiniteLoopStatement")
@@ -17,7 +17,8 @@ class DeckTest {
             while (true) {
                 assertThat(cards.add(deck.deal())).isTrue();
             }
-        } catch (IllegalStateException _) {}
-        assertThat(cards).hasSize(52);
+        } catch (IllegalStateException e) {
+            assertThat(cards).hasSize(52);
+        }
     }
 }

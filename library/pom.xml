@@ -49,7 +49,6 @@
                 <version>3.11.0</version>
                 <configuration>
                     <release>${release}</release>
-                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
@@ -79,7 +78,6 @@
                 <configuration>
                     <release>${release}</release>
                     <additionalOptions>
-                        <additionalOption>--enable-preview</additionalOption>
                         <additionalOption>--override-methods=summary</additionalOption>
                     </additionalOptions>
                     <nodeprecatedlist>true</nodeprecatedlist>

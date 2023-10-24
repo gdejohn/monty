@@ -58,9 +58,9 @@ public final class Monty {
 
     public BigDecimal expectedValue(long raise, long pot, MathContext context) {
         if (pot <= 0L) {
-            throw new IllegalArgumentException(STR."pot = \{pot} (must be positive)");
+            throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
         } else if (raise <= 0L) {
-            throw new IllegalArgumentException(STR."raise = \{raise} (must be positive)");
+            throw new IllegalArgumentException("raise = %d (must be positive)".formatted(raise));
         } else {
             return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
         }
@@ -145,14 +145,15 @@ public final class Monty {
 
         if (opponents < 1 || opponents > 22) {
             throw new IllegalArgumentException(
-                STR."opponents = \{opponents} (must be greater than 0 and less than 23)"
+                "opponents = %d (must be greater than 0 and less than 23)".formatted(opponents)
             );
         } else if ((pocket.pack() & board.pack()) != 0) {
             throw new IllegalArgumentException(
-                STR."""
-                    pocket \{pocket} and board \{board} must be disjoint, but both contain
-                    \{Cards.toString(Cards.unpack(pocket.pack() & board.pack()))}
-                """
+                "pocket %s and board %s must be disjoint, but both contain %s".formatted(
+                    pocket,
+                    board,
+                    Cards.toString(Cards.unpack(pocket.pack() & board.pack()))
+                )
             );
         } else {
             return StreamSupport.stream(
