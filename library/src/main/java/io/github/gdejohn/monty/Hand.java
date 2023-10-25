@@ -1,6 +1,8 @@
 package io.github.gdejohn.monty;
 
 import io.github.gdejohn.monty.Card.Cards;
+import io.github.gdejohn.monty.Card.Rank;
+import io.github.gdejohn.monty.Card.Suit;
 
 import java.util.stream.Stream;
 
@@ -15,8 +17,6 @@ import static io.github.gdejohn.monty.Category.THREE_OF_A_KIND;
 import static io.github.gdejohn.monty.Category.TWO_PAIR;
 
 public final class Hand implements Comparable<Hand> {
-    private static final Hand EMPTY = new Hand(0L, 0L, 0, 0, 0);
-
     /**
      * A bit vector of the cards in this hand.
      *
@@ -64,35 +64,47 @@ public final class Hand implements Comparable<Hand> {
         this.count = (short) count;
     }
 
+    private static final Hand EMPTY = new Hand(0L, 0L, 0, 0, 0);
+
     public static Hand empty() {
         return EMPTY;
     }
 
     public Hand deal(Card card) {
         var rank = card.rank();
+        var suit = card.suit();
         return new Hand(
             cards | card.pack(),
-            rank.increment(ranks),
-            card.suit().increment(suits),
+            add(ranks, rank),
+            add(suits, suit),
             kickers | rank.pack(),
             count + (((kickers >>> rank.ordinal()) & 1) ^ 1)
         );
     }
 
+    private static long add(long ranks, Rank rank) {
+        var count = ranks & (0x4002001L << rank.ordinal());
+        return ranks ^ count | (count << 13) | (((count - 1) >>> 63) << rank.ordinal());
+    }
+
+    private static int add(int suits, Suit suit) {
+        var count = suits & (0x111111 << suit.ordinal());
+        return suits ^ count | (count << 4) | (((count - 1) >>> 31) << suit.ordinal());
+    }
+
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var count = suits < 1 << 20 ? 5 : suits < 1 << 24 ? 6 : 7;
-                var suit = suits >>> ((count - 1) << 2);
-                var flush = (cards >>> (((suit >>> 1) - (suit >>> 3)) * 13)) & (-1 >>> -13);
-                var straightFlush = straight((int) flush, count);
+                var suit = index[((suits >>> 16) * 0x9AF0000) >>> 28] & 0xFF;
+                var flush = (int) (cards >>> (suit & 0x3F)) & 0x1FFF;
+                var straightFlush = straight(flush);
                 if (straightFlush != 0) {
                     return STRAIGHT_FLUSH.pack(straightFlush);
                 } else {
-                    return FLUSH.pack(select(flush, count - 5));
+                    return FLUSH.pack(select(flush, suit >> 6));
                 }
             } else {
-                var straight = straight(kickers, count);
+                var straight = straight(kickers);
                 if (straight != 0) {
                     return STRAIGHT.pack(straight);
                 } else if (count > 5) {
@@ -116,7 +128,7 @@ public final class Hand implements Comparable<Hand> {
         } else if (ranks < 1L << 39) { // 3-3-1, 3-2-2, 3-2-1-1
             var fullHouse = select(ranks, count - 2) >>> 13;
             var pair = fullHouse & -fullHouse;
-            return FULL_HOUSE.pack((fullHouse ^ pair) | (pair >>> 13) | (pair & (-1 >>> -13)));
+            return FULL_HOUSE.pack((fullHouse ^ pair) | (pair >>> 13) | (pair & 0x1FFF));
         } else { // 4-3, 4-2-1, 4-1-1-1
             var quads = ranks >>> 39;
             return FOUR_OF_A_KIND.pack((quads << 13) | select(kickers ^ quads, count - 2));
@@ -127,23 +139,19 @@ public final class Hand implements Comparable<Hand> {
      * Check for a straight.
      *
      * @param ranks the ranks to check
-     * @param count the number of distinct ranks
      *
      * @return the high rank of the straight, or {@code 0} if there is no straight
      */
-    private static int straight(int ranks, int count) {
-        var wheel = ~((ranks << 1) | (ranks >>> 12));
-        wheel = ((wheel & -wheel) >>> 5) << 3;
-        if (wheel != 0) {
-            return wheel;
-        } else while (true) {
-            var high = 31 - Integer.numberOfLeadingZeros(ranks);
-            var straight = ~(ranks >>> (high - 4));
-            straight = ((straight & -straight) >>> 5) << high;
-            if (straight != 0  || --count < 5) {
-                return straight;
-            } else {
-                ranks ^= 1 << high; // clear highest rank
+    private static int straight(int ranks) {
+        var straight = straights[(ranks >>> 6) & 0x7F];
+        if (straight != 0) {
+            return (straight & 0xFF) << 6;
+        } else {
+            straight = straights[(ranks >>> 2) & 0xFF];
+            if (straight != 0) {
+                return (straight & 0xFF) << 2;
+            } else { // wheel
+                return (straights[((ranks << 1) | (ranks >>> 12)) & 0x7F] & 0xFF) >>> 1;
             }
         }
     }
@@ -153,7 +161,7 @@ public final class Hand implements Comparable<Hand> {
      *
      * @param bits the bits to select from
      * @param n the number of low bits to clear
-     * 
+     *
      * @return the selected bits
      */
     private static long select(long bits, int n) {
@@ -190,4 +198,25 @@ public final class Hand implements Comparable<Hand> {
     public Stream<Card> cards() {
         return category().cards(this);
     }
+
+    private static final byte[] index = {0, 13, 26, 77, 39, -115, 90, -89, 0, 64, -128, -102, 0, 103, 0, 0};
+
+    private static final byte[] straights = {
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x10,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x20, 0x20,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x10,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x40, 0x40, 0x40, 0x40,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x10,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x20, 0x20,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0x10,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+        0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, -128, -128, -128, -128, -128, -128, -128, 0000
+    };
 }

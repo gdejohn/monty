@@ -22,7 +22,7 @@ public class Deck {
         shuffle();
     }
 
-    static Deck deck(Board board, Pocket pocket, SplittableGenerator rng) {
+    public static Deck deck(Board board, Pocket pocket, SplittableGenerator rng) {
         var deck = DECK ^ board.pack() ^ pocket.pack();
         var cards = new Card[Long.bitCount(deck)];
         for (var index = 0; index < cards.length; index++) {
@@ -33,6 +33,10 @@ public class Deck {
         return new Deck(cards, rng);
     }
 
+    public static Deck deck(Pocket pocket, SplittableGenerator rng) {
+        return deck(PRE_FLOP, pocket, rng);
+    }
+
     public static Deck deck(Board board, Pocket pocket) {
         return deck(board, pocket, new SplittableRandom());
     }
@@ -41,8 +45,12 @@ public class Deck {
         return deck(PRE_FLOP, pocket);
     }
 
+    public static Deck deck(SplittableGenerator rng) {
+        return new Deck(cards().toArray(Card[]::new), rng);
+    }
+
     public static Deck deck() {
-        return new Deck(cards().toArray(Card[]::new), new SplittableRandom());
+        return deck(new SplittableRandom());
     }
 
     public void shuffle() {

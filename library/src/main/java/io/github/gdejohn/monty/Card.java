@@ -1,13 +1,13 @@
 package io.github.gdejohn.monty;
 
+import java.util.Arrays;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
+
 import static io.github.gdejohn.monty.Card.Rank.ranks;
 import static io.github.gdejohn.monty.Card.Suit.suits;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
-
-import java.util.Arrays;
-import java.util.stream.LongStream;
-import java.util.stream.Stream;
 
 public record Card(Rank rank, Suit suit) {
     static sealed abstract class Cards permits Board, Pocket {
@@ -93,15 +93,6 @@ public record Card(Rank rank, Suit suit) {
         int pack() {
             return 1 << ordinal();
         }
-
-        long count(long ranks) {
-            return ranks & (0x4002001L << ordinal());
-        }
-
-        long increment(long ranks) {
-            var count = count(ranks);
-            return ranks ^ Long.max(pack(), count | (count << 13));
-        }
     }
 
     public enum Suit {
@@ -125,19 +116,6 @@ public record Card(Rank rank, Suit suit) {
         @Override
         public String toString() {
             return string;
-        }
-
-        int pack() {
-            return 1 << ordinal();
-        }
-
-        int count(int suits) {
-            return suits & (0x111111 << ordinal());
-        }
-
-        int increment(int suits) {
-            var count = count(suits);
-            return suits ^ Integer.max(pack(), count | (count << 4));
         }
     }
 

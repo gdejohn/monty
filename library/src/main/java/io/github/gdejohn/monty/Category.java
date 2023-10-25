@@ -1,5 +1,17 @@
 package io.github.gdejohn.monty;
 
+import io.github.gdejohn.monty.Card.Cards;
+import io.github.gdejohn.monty.Card.Rank;
+import io.github.gdejohn.monty.Card.Suit;
+
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
+
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
 import static java.util.Arrays.stream;
 import static java.util.Comparator.comparing;
@@ -8,18 +20,6 @@ import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.maxBy;
 import static java.util.stream.Collectors.toCollection;
-
-import java.util.Comparator;
-import java.util.EnumMap;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
-
-import io.github.gdejohn.monty.Card.Cards;
-import io.github.gdejohn.monty.Card.Rank;
-import io.github.gdejohn.monty.Card.Suit;
 
 public enum Category {
     HIGH_CARD(5, 407, 23_294_460),
