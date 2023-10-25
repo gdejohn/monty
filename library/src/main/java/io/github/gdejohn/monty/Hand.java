@@ -101,7 +101,7 @@ public final class Hand implements Comparable<Hand> {
                 if (straightFlush != 0) {
                     return STRAIGHT_FLUSH.pack(straightFlush);
                 } else {
-                    return FLUSH.pack(select(flush, suit >> 6));
+                    return FLUSH.pack(select(flush, suit >>> 6));
                 }
             } else {
                 var straight = straight(kickers);
@@ -115,7 +115,7 @@ public final class Hand implements Comparable<Hand> {
                         return HIGH_CARD.pack(select(kickers, 2));
                     }
                 } else if (ranks < 1L << 26) { // 2-2-1-1-1
-                    var pairs = ranks >> 13;
+                    var pairs = ranks >>> 13;
                     return TWO_PAIR.pack((pairs << 13) | select(kickers ^ pairs, 2));
                 } else { // 3-1-1-1-1
                     var trips = ranks >>> 26;
