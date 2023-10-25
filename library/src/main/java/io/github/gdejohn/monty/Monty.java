@@ -57,10 +57,10 @@ public final class Monty {
     }
 
     public BigDecimal expectedValue(long raise, long pot, MathContext context) {
-        if (pot <= 0L) {
-            throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
-        } else if (raise <= 0L) {
+        if (raise <= 0L) {
             throw new IllegalArgumentException("raise = %d (must be positive)".formatted(raise));
+        } else if (pot <= 0L) {
+            throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
         } else {
             return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
         }

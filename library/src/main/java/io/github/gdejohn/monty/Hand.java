@@ -70,6 +70,34 @@ public final class Hand implements Comparable<Hand> {
         return EMPTY;
     }
 
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof Hand that && this.evaluate() == that.evaluate();
+    }
+
+    @Override
+    public int hashCode() {
+        return evaluate();
+    }
+
+    @Override
+    public String toString() {
+        return Cards.toString(cards());
+    }
+
+    @Override
+    public int compareTo(Hand hand) {
+        return Integer.compare(this.evaluate(), hand.evaluate());
+    }
+
+    public Category category() {
+        return Category.unpack(evaluate());
+    }
+
+    public Stream<Card> cards() {
+        return category().cards(this);
+    }
+
     public Hand deal(Card card) {
         var rank = card.rank();
         var suit = card.suit();
@@ -170,34 +198,6 @@ public final class Hand implements Comparable<Hand> {
             bits &= bits - 1;
         }
         return bits;
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        return object instanceof Hand that && this.evaluate() == that.evaluate();
-    }
-
-    @Override
-    public int hashCode() {
-        return evaluate();
-    }
-
-    @Override
-    public String toString() {
-        return Cards.toString(cards());
-    }
-
-    @Override
-    public int compareTo(Hand hand) {
-        return Integer.compare(this.evaluate(), hand.evaluate());
-    }
-
-    public Category category() {
-        return Category.unpack(evaluate());
-    }
-
-    public Stream<Card> cards() {
-        return category().cards(this);
     }
 
     private static final byte[] flushes = {
