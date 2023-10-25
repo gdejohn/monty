@@ -7,7 +7,7 @@ import java.util.random.RandomGenerator.SplittableGenerator;
 import static io.github.gdejohn.monty.Board.PRE_FLOP;
 import static io.github.gdejohn.monty.Card.cards;
 
-public class Deck {
+public final class Deck {
     private static final long DECK = -1L >>> -52;
     
     private final SplittableGenerator rng;
