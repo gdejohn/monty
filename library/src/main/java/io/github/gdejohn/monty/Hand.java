@@ -140,7 +140,8 @@ public final class Hand implements Comparable<Hand> {
      *
      * @param ranks the ranks to check
      *
-     * @return the high rank of the straight, or {@code 0} if there is no straight
+     * @return one bit set at the position corresponding to the high rank of the straight,
+     *         or {@code 0} if there is no straight
      */
     private static int straight(int ranks) {
         var straight = straights[(ranks >>> 6) & 0x7F];
