@@ -95,7 +95,7 @@ public final class Hand implements Comparable<Hand> {
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var suit = index[((suits >>> 16) * 0x9AF0000) >>> 28] & 0xFF;
+                var suit = flushes[((suits >>> 16) * 0x9AF0000) >>> 28] & 0xFF;
                 var flush = (int) (cards >>> (suit & 0x3F)) & 0x1FFF;
                 var straightFlush = straight(flush);
                 if (straightFlush != 0) {
@@ -200,7 +200,7 @@ public final class Hand implements Comparable<Hand> {
         return category().cards(this);
     }
 
-    private static final byte[] index = {
+    private static final byte[] flushes = {
         0, 13, 26, 77, 39, -115, 90, -89, 0, 64, -128, -102, 0, 103, 0, 0
     };
 
