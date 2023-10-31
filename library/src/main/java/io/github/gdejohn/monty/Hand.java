@@ -54,14 +54,14 @@ public final class Hand implements Comparable<Hand> {
     /**
      * The number of distinct ranks of the cards in this hand.
      */
-    final short count;
+    final byte count;
 
     private Hand(long cards, long ranks, int suits, int kickers, int count) {
         this.cards = cards;
         this.ranks = ranks;
         this.suits = suits;
         this.kickers = (short) kickers;
-        this.count = (short) count;
+        this.count = (byte) count;
     }
 
     private static final Hand EMPTY = new Hand(0L, 0L, 0, 0, 0);
@@ -103,19 +103,19 @@ public final class Hand implements Comparable<Hand> {
         var suit = card.suit();
         return new Hand(
             cards | card.pack(),
-            add(ranks, rank),
-            add(suits, suit),
+            add(rank),
+            add(suit),
             kickers | rank.pack(),
             count + (((kickers >>> rank.ordinal()) & 1) ^ 1)
         );
     }
 
-    private static long add(long ranks, Rank rank) {
+    private long add(Rank rank) {
         var count = ranks & (0x4002001L << rank.ordinal());
         return ranks ^ count | (count << 13) | (((count - 1) >>> 63) << rank.ordinal());
     }
 
-    private static int add(int suits, Suit suit) {
+    private int add(Suit suit) {
         var count = suits & (0x111111 << suit.ordinal());
         return suits ^ count | (count << 4) | (((count - 1) >>> 31) << suit.ordinal());
     }
@@ -123,13 +123,13 @@ public final class Hand implements Comparable<Hand> {
     public int evaluate() {
         if (count > 4) {
             if (suits > 1 << 16) {
-                var suit = flushes[((suits >>> 16) * 0x9AF0000) >>> 28] & 0xFF;
+                var suit = flushes[((suits >>> 16) * 0x9AF0000) >>> 28];
                 var flush = (int) (cards >>> (suit & 0x3F)) & 0x1FFF;
                 var straightFlush = straight(flush);
                 if (straightFlush != 0) {
                     return STRAIGHT_FLUSH.pack(straightFlush);
                 } else {
-                    return FLUSH.pack(select(flush, suit >>> 6));
+                    return FLUSH.pack(select(flush, (suit & 0xFF) >>> 6));
                 }
             } else {
                 var straight = straight(kickers);
@@ -172,7 +172,7 @@ public final class Hand implements Comparable<Hand> {
      *         or {@code 0} if there is no straight
      */
     private static int straight(int ranks) {
-        var straight = straights[(ranks >>> 6) & 0x7F];
+        var straight = straights[ranks >>> 6];
         if (straight != 0) {
             return (straight & 0xFF) << 6;
         } else {
@@ -180,7 +180,8 @@ public final class Hand implements Comparable<Hand> {
             if (straight != 0) {
                 return (straight & 0xFF) << 2;
             } else { // wheel
-                return (straights[((ranks << 1) | (ranks >>> 12)) & 0x7F] & 0xFF) >>> 1;
+                straight = straights[((ranks << 1) | (ranks >>> 12)) & 0x7F];
+                return (straight & 0xFF) >>> 1;
             }
         }
     }
@@ -201,7 +202,7 @@ public final class Hand implements Comparable<Hand> {
     }
 
     private static final byte[] flushes = {
-        0, 13, 26, 77, 39, -115, 90, -89, 0, 64, -128, -102, 0, 103, 0, 0
+        0, 13, 26, 77, 39, -115, 90, -89, 0, 64, -128, -102, 0, 103
     };
 
     private static final byte[] straights = {
@@ -220,6 +221,6 @@ public final class Hand implements Comparable<Hand> {
         0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0,
         0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0,   16,
         0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0,
-        0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, -128, -128, -128, -128, -128, -128, -128, 0__0
+        0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, 0__0, -128, -128, -128, -128, -128, -128, -128
     };
 }

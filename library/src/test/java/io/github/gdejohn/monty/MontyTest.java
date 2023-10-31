@@ -38,15 +38,8 @@ class MontyTest {
     }
 
     @Test
-    void equitySequentialFirst() {
+    void equitySequential() {
         var splits = splits().sequential().limit(trials).collect(monty());
-        assertThat(splits.trials()).isEqualTo(trials);
-        assertThat(splits.equity()).hasToString("0.5228");
-    }
-
-    @Test
-    void equitySequentialLast() {
-        var splits = splits().limit(trials).sequential().collect(monty());
         assertThat(splits.trials()).isEqualTo(trials);
         assertThat(splits.equity()).hasToString("0.5228");
     }

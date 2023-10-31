@@ -1,6 +1,10 @@
 package io.github.gdejohn.monty;
 
-import static io.github.gdejohn.monty.Card.cards;
+import org.junit.jupiter.api.Test;
+
+import java.util.EnumMap;
+import java.util.stream.Stream;
+
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
@@ -18,6 +22,7 @@ import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.DIAMONDS;
 import static io.github.gdejohn.monty.Card.Suit.HEARTS;
 import static io.github.gdejohn.monty.Card.Suit.SPADES;
+import static io.github.gdejohn.monty.Card.cards;
 import static io.github.gdejohn.monty.Category.FLUSH;
 import static io.github.gdejohn.monty.Category.FOUR_OF_A_KIND;
 import static io.github.gdejohn.monty.Category.FULL_HOUSE;
@@ -33,11 +38,6 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.IntStream.range;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.EnumMap;
-import java.util.stream.Stream;
-
-import org.junit.jupiter.api.Test;
 
 class HandTest {
     private static final Card[] deck = cards().toArray(Card[]::new);
@@ -118,10 +118,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000000000_0000011101111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.kickers).isEqualTo((short) 0b0000011101111);
-        assertThat(hand.count).isEqualTo((short) 7);
+        assertThat(hand.count).isEqualTo((byte) 7);
         assertThat(hand.evaluate()).isEqualTo(0b0000_0000000000000_0000011101100);
         assertThat(hand.category()).isEqualTo(HIGH_CARD);
-        assertThat(hand.toString()).isEqualTo("(9h,8s,7d,5c,4c)");
+        assertThat(hand).hasToString("(9h,8s,7d,5c,4c)");
     }
 
     @Test
@@ -139,10 +139,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000001000_0000001100111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.kickers).isEqualTo((short) 0b0000001101111);
-        assertThat(hand.count).isEqualTo((short) 6);
+        assertThat(hand.count).isEqualTo((byte) 6);
         assertThat(hand.evaluate()).isEqualTo(0b0001_0000000001000_0000001100100);
         assertThat(hand.category()).isEqualTo(ONE_PAIR);
-        assertThat(hand.toString()).isEqualTo("(5s,5h,8c,7d,4c)");
+        assertThat(hand).hasToString("(5s,5h,8c,7d,4c)");
     }
 
     @Test
@@ -160,10 +160,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000001100_0000001000011L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0001_0000_0100_0010);
         assertThat(hand.kickers).isEqualTo((short) 0b0000001001111);
-        assertThat(hand.count).isEqualTo((short) 5);
+        assertThat(hand.count).isEqualTo((byte) 5);
         assertThat(hand.evaluate()).isEqualTo(0b0010_0000000001100_0000001000000);
         assertThat(hand.category()).isEqualTo(TWO_PAIR);
-        assertThat(hand.toString()).isEqualTo("(5h,5c,4h,4d,8c)");
+        assertThat(hand).hasToString("(5h,5c,4h,4d,8c)");
     }
 
     @Test
@@ -181,10 +181,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000001110_0000001000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0001_0100_1010);
         assertThat(hand.kickers).isEqualTo((short) 0b0000001001110);
-        assertThat(hand.count).isEqualTo((short) 4);
+        assertThat(hand.count).isEqualTo((byte) 4);
         assertThat(hand.evaluate()).isEqualTo(0b0010_0000000001100_0000001000000);
         assertThat(hand.category()).isEqualTo(TWO_PAIR);
-        assertThat(hand.toString()).isEqualTo("(5h,5c,4h,4d,8c)");
+        assertThat(hand).hasToString("(5h,5c,4h,4d,8c)");
     }
 
     @Test
@@ -202,10 +202,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000001000_0000000000000_0100000000111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0001_0000_0000_1110);
         assertThat(hand.kickers).isEqualTo((short) 0b0100000001111);
-        assertThat(hand.count).isEqualTo((short) 5);
+        assertThat(hand.count).isEqualTo((byte) 5);
         assertThat(hand.evaluate()).isEqualTo(0b0011_0000000001000_0100000000100);
         assertThat(hand.category()).isEqualTo(THREE_OF_A_KIND);
-        assertThat(hand.toString()).isEqualTo("(5s,5h,5c,Kd,4c)");
+        assertThat(hand).hasToString("(5s,5h,5c,Kd,4c)");
     }
 
     @Test
@@ -223,10 +223,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000000000_0000011011111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.kickers).isEqualTo((short) 0b0000011011111);
-        assertThat(hand.count).isEqualTo((short) 7);
+        assertThat(hand.count).isEqualTo((byte) 7);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_0000000010000);
         assertThat(hand.category()).isEqualTo(STRAIGHT);
-        assertThat(hand.toString()).isEqualTo("(6h,5s,4d,3c,2c)");
+        assertThat(hand).hasToString("(6h,5s,4d,3c,2c)");
     }
 
     @Test
@@ -244,10 +244,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_1000000000000_0000000000000_0111100000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0001_1000_0110);
         assertThat(hand.kickers).isEqualTo((short) 0b1111100000000);
-        assertThat(hand.count).isEqualTo((short) 5);
+        assertThat(hand.count).isEqualTo((byte) 5);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_1000000000000);
         assertThat(hand.category()).isEqualTo(STRAIGHT);
-        assertThat(hand.toString()).isEqualTo("(As,Ks,Qd,Jc,Tc)");
+        assertThat(hand).hasToString("(As,Ks,Qd,Jc,Tc)");
     }
 
     @Test
@@ -265,10 +265,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000001000000_1000000001111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.kickers).isEqualTo((short) 0b1000001001111);
-        assertThat(hand.count).isEqualTo((short) 6);
+        assertThat(hand.count).isEqualTo((byte) 6);
         assertThat(hand.evaluate()).isEqualTo(0b0100_0000000000000_0000000001000);
         assertThat(hand.category()).isEqualTo(STRAIGHT);
-        assertThat(hand.toString()).isEqualTo("(5s,4d,3c,2c,Ah)");
+        assertThat(hand).hasToString("(5s,4d,3c,2c,Ah)");
     }
 
     @Test
@@ -286,10 +286,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000001100_0000001000011L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0001_0000_0000_0000_0110);
         assertThat(hand.kickers).isEqualTo((short) 0b0000001001111);
-        assertThat(hand.count).isEqualTo((short) 5);
+        assertThat(hand.count).isEqualTo((byte) 5);
         assertThat(hand.evaluate()).isEqualTo(0b0101_0000000000000_0000001001111);
         assertThat(hand.category()).isEqualTo(FLUSH);
-        assertThat(hand.toString()).isEqualTo("(8c,5c,4c,3c,2c)");
+        assertThat(hand).hasToString("(8c,5c,4c,3c,2c)");
     }
 
     @Test
@@ -307,10 +307,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000001_0000000000010_0000000001100L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0001_0000_0010_0100);
         assertThat(hand.kickers).isEqualTo((short) 0b0000000001111);
-        assertThat(hand.count).isEqualTo((short) 4);
+        assertThat(hand.count).isEqualTo((byte) 4);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000001_0000000000010);
         assertThat(hand.category()).isEqualTo(FULL_HOUSE);
-        assertThat(hand.toString()).isEqualTo("(2h,2d,2c,3d,3c)");
+        assertThat(hand).hasToString("(2h,2d,2c,3d,3c)");
     }
 
     @Test
@@ -328,10 +328,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000011_0000000000000_0000000001000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0001_0110_0000);
         assertThat(hand.kickers).isEqualTo((short) 0b0000000001011);
-        assertThat(hand.count).isEqualTo((short) 3);
+        assertThat(hand.count).isEqualTo((byte) 3);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000010_0000000000001);
         assertThat(hand.category()).isEqualTo(FULL_HOUSE);
-        assertThat(hand.toString()).isEqualTo("(3h,3d,3c,2h,2d)");
+        assertThat(hand).hasToString("(3h,3d,3c,2h,2d)");
     }
 
     @Test
@@ -349,10 +349,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000001_0000000000110_0000000000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0011_0000_0100);
         assertThat(hand.kickers).isEqualTo((short) 0b0000000000111);
-        assertThat(hand.count).isEqualTo((short) 3);
+        assertThat(hand.count).isEqualTo((byte) 3);
         assertThat(hand.evaluate()).isEqualTo(0b0110_0000000000001_0000000000100);
         assertThat(hand.category()).isEqualTo(FULL_HOUSE);
-        assertThat(hand.toString()).isEqualTo("(2h,2d,2c,4d,4c)");
+        assertThat(hand).hasToString("(2h,2d,2c,4d,4c)");
     }
 
     @Test
@@ -370,10 +370,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000010000000_0000000000000_0000000000000_0010000110000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0001_0100_1010);
         assertThat(hand.kickers).isEqualTo((short) 0b0010010110000);
-        assertThat(hand.count).isEqualTo((short) 4);
+        assertThat(hand.count).isEqualTo((byte) 4);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0010000000000);
         assertThat(hand.category()).isEqualTo(FOUR_OF_A_KIND);
-        assertThat(hand.toString()).isEqualTo("(9s,9h,9d,9c,Qc)");
+        assertThat(hand).hasToString("(9s,9h,9d,9c,Qc)");
     }
 
     @Test
@@ -391,10 +391,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000010000000_0000000000000_0000000010000_0010000000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.kickers).isEqualTo((short) 0b0010010010000);
-        assertThat(hand.count).isEqualTo((short) 3);
+        assertThat(hand.count).isEqualTo((byte) 3);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0010000000000);
         assertThat(hand.category()).isEqualTo(FOUR_OF_A_KIND);
-        assertThat(hand.toString()).isEqualTo("(9s,9h,9d,9c,Qs)");
+        assertThat(hand).hasToString("(9s,9h,9d,9c,Qs)");
     }
 
     @Test
@@ -412,10 +412,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000010000000_0000000010000_0000000000000_0000000000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0000_0000_0000_1101_0010);
         assertThat(hand.kickers).isEqualTo((short) 0b0000010010000);
-        assertThat(hand.count).isEqualTo((short) 2);
+        assertThat(hand.count).isEqualTo((byte) 2);
         assertThat(hand.evaluate()).isEqualTo(0b0111_0000010000000_0000000010000);
         assertThat(hand.category()).isEqualTo(FOUR_OF_A_KIND);
-        assertThat(hand.toString()).isEqualTo("(9s,9h,9d,9c,6s)");
+        assertThat(hand).hasToString("(9s,9h,9d,9c,6s)");
     }
 
     @Test
@@ -433,10 +433,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000000000_0111111100000L);
         assertThat(hand.suits).isEqualTo(0b0000_0100_0000_0000_0000_0000_1000);
         assertThat(hand.kickers).isEqualTo((short) 0b0111111100000);
-        assertThat(hand.count).isEqualTo((short) 7);
+        assertThat(hand.count).isEqualTo((byte) 7);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_0001000000000);
         assertThat(hand.category()).isEqualTo(STRAIGHT_FLUSH);
-        assertThat(hand.toString()).isEqualTo("(Jh,Th,9h,8h,7h)");
+        assertThat(hand).hasToString("(Jh,Th,9h,8h,7h)");
     }
 
     @Test
@@ -454,10 +454,10 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_1000000000000_0000000000000_0111100000000L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0001_0000_0000_0000_1100);
         assertThat(hand.kickers).isEqualTo((short) 0b1111100000000);
-        assertThat(hand.count).isEqualTo((short) 5);
+        assertThat(hand.count).isEqualTo((byte) 5);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_1000000000000);
         assertThat(hand.category()).isEqualTo(STRAIGHT_FLUSH);
-        assertThat(hand.toString()).isEqualTo("(Ac,Kc,Qc,Jc,Tc)");
+        assertThat(hand).hasToString("(Ac,Kc,Qc,Jc,Tc)");
     }
 
     @Test
@@ -475,9 +475,9 @@ class HandTest {
         assertThat(hand.ranks).isEqualTo(0b0000000000000_0000000000000_0000000000000_1000000111111L);
         assertThat(hand.suits).isEqualTo(0b0000_0000_0010_0000_0000_0000_1100);
         assertThat(hand.kickers).isEqualTo((short) 0b1000000111111);
-        assertThat(hand.count).isEqualTo((short) 7);
+        assertThat(hand.count).isEqualTo((byte) 7);
         assertThat(hand.evaluate()).isEqualTo(0b1000_0000000000000_0000000001000);
         assertThat(hand.category()).isEqualTo(STRAIGHT_FLUSH);
-        assertThat(hand.toString()).isEqualTo("(5d,4d,3d,2d,Ad)");
+        assertThat(hand).hasToString("(5d,4d,3d,2d,Ad)");
     }
 }

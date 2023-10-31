@@ -10,8 +10,8 @@ class Demo {
         var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
         var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
 
-        // an infinite, parallel stream of simulated games, throughput
-        // scales linearly with number of threads
+        // an infinite, parallel, unordered stream of simulated games,
+        // throughput scales linearly with number of threads
         Stream<Showdown> splits = splits(opponents, pocket, board);
 
         // custom collector returns object that can estimate equity

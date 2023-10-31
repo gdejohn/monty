@@ -106,7 +106,7 @@ public final class Monty {
             }
 
             @Override
-            public Splits trySplit() {
+            public Spliterator<Showdown> trySplit() {
                 if (trials < 2) {
                     return null;
                 } else {
