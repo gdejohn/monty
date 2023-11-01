@@ -15,7 +15,7 @@ public sealed interface Showdown {
     private static long[] winnings() {
         var winnings = new long[24];
         for (var split = 1; split < winnings.length; split++) {
-            winnings[split] = LCM.divide(BigDecimal.valueOf(split), UNLIMITED).longValue();
+            winnings[split] = LCM.divide(BigDecimal.valueOf(split), UNLIMITED).longValueExact();
         }
         return winnings;
     }
