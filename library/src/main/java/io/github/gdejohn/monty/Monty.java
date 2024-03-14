@@ -1,6 +1,9 @@
 package io.github.gdejohn.monty;
 
 import io.github.gdejohn.monty.Card.Cards;
+import io.github.gdejohn.monty.Showdown.Loss;
+import io.github.gdejohn.monty.Showdown.Tie;
+import io.github.gdejohn.monty.Showdown.Win;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -10,11 +13,11 @@ import java.util.SplittableRandom;
 import java.util.function.Consumer;
 import java.util.random.RandomGenerator.SplittableGenerator;
 import java.util.stream.Collector;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
-import static io.github.gdejohn.monty.Showdown.LCM;
 import static io.github.gdejohn.monty.Showdown.showdown;
 import static java.lang.Integer.signum;
 import static java.math.MathContext.UNLIMITED;
@@ -25,6 +28,15 @@ import static java.util.stream.Collectors.summarizingLong;
 public final class Monty {
     private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
 
+    /**
+     * Least common multiple of the integers from 1 to 23, inclusive.
+     */
+    private static final BigDecimal LCM = BigDecimal.valueOf(5_354_228_880L);
+
+    private static final long[] WINNINGS = IntStream.range(0, 24).mapToLong(
+        split -> split == 0 ? 0L : LCM.divide(BigDecimal.valueOf(split), UNLIMITED).longValueExact()
+    ).toArray();
+
     final BigDecimal winnings;
     final BigDecimal trials;
 
@@ -34,7 +46,16 @@ public final class Monty {
     }
 
     public static Collector<Showdown, ?, Monty> monty() {
-        return collectingAndThen(summarizingLong(Showdown::winnings), Monty::new);
+        return collectingAndThen(
+            summarizingLong(
+                showdown -> switch (showdown) {
+                    case Tie(var split) -> WINNINGS[split];
+                    case Win() -> WINNINGS[1];
+                    case Loss() -> WINNINGS[0];
+                }
+            ),
+            Monty::new
+        );
     }
 
     public long trials() {
@@ -50,10 +71,7 @@ public final class Monty {
     }
 
     private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
-        return winnings.multiply(pot.add(raise)).divide(
-            trials.multiply(raise),
-            context
-        );
+        return winnings.multiply(pot.add(raise)).divide(trials.multiply(raise),context);
     }
 
     public BigDecimal expectedValue(long raise, long pot, MathContext context) {
@@ -133,8 +151,8 @@ public final class Monty {
                         switch (signum(value - deck.deal(board, 2).evaluate())) {
                             case 0: split++;
                             case 1: continue;
+                            case -1: split = 0;
                         }
-                        split = 0;
                         break;
                     }
                     action.accept(showdown(split));
@@ -156,6 +174,7 @@ public final class Monty {
                 )
             );
         } else {
+            var parallel = true;
             return StreamSupport.stream(
                 new Splits(
                     deck(board, pocket, rng),
@@ -163,7 +182,7 @@ public final class Monty {
                     board.hand(),
                     Long.MAX_VALUE
                 ),
-                true // parallel
+                parallel
             );
         }
     }

@@ -7,9 +7,11 @@ import java.util.stream.Stream;
 import static io.github.gdejohn.monty.Card.Rank.ranks;
 import static io.github.gdejohn.monty.Card.Suit.suits;
 import static java.util.Arrays.stream;
+import static java.util.Objects.checkIndex;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.IntStream.range;
 
-public record Card(Rank rank, Suit suit) {
+public record Card(Rank rank, Suit suit, byte ordinal) {
     static sealed abstract class Cards permits Board, Pocket {
         final Card[] cards;
 
@@ -50,27 +52,25 @@ public record Card(Rank rank, Suit suit) {
         }
     }
 
-    public enum Rank {
-        TWO("2"),
-        THREE("3"),
-        FOUR("4"),
-        FIVE("5"),
-        SIX("6"),
-        SEVEN("7"),
-        EIGHT("8"),
-        NINE("9"),
-        TEN("T"),
-        JACK("J"),
-        QUEEN("Q"),
-        KING("K"),
-        ACE("A");
+    public record Rank(byte ordinal) implements Comparable<Rank> {
+        private static final Rank[] ranks = range(0, 13).mapToObj(ordinal -> new Rank((byte) ordinal)).toArray(Rank[]::new);
 
-        private static final Rank[] ranks = Rank.values();
+        public static final Rank TWO = ranks[0],
+                                 THREE = ranks[1],
+                                 FOUR = ranks[2],
+                                 FIVE = ranks[3],
+                                 SIX = ranks[4],
+                                 SEVEN = ranks[5],
+                                 EIGHT = ranks[6],
+                                 NINE = ranks[7],
+                                 TEN = ranks[8],
+                                 JACK = ranks[9],
+                                 QUEEN = ranks[10],
+                                 KING = ranks[11],
+                                 ACE = ranks[12];
 
-        private final String string;
-
-        Rank(String string) {
-            this.string = string;
+        public Rank {
+            checkIndex(ordinal, 13);
         }
 
         static Rank unpack(int rank) {
@@ -82,31 +82,30 @@ public record Card(Rank rank, Suit suit) {
         }
 
         @Override
+        public int compareTo(Rank that) {
+            return Byte.compare(this.ordinal, that.ordinal);
+        }
+
+        @Override
         public String toString() {
-            return string;
+            return "23456789TJQKA".substring(this.ordinal, this.ordinal + 1);
         }
 
         public Card of(Suit suit) {
-            return card(this, suit);
-        }
-
-        int pack() {
-            return 1 << ordinal();
+            return cards[Card.ordinal(this, suit)];
         }
     }
 
-    public enum Suit {
-        CLUBS("c"),
-        DIAMONDS("d"),
-        HEARTS("h"),
-        SPADES("s");
+    public record Suit(byte ordinal) implements Comparable<Suit> {
+        private static final Suit[] suits = range(0, 4).mapToObj(ordinal -> new Suit((byte) ordinal)).toArray(Suit[]::new);
 
-        private static final Suit[] suits = Suit.values();
-        
-        private final String string;
+        public static final Suit CLUBS = suits[0],
+                                 DIAMONDS = suits[1],
+                                 HEARTS = suits[2],
+                                 SPADES = suits[3];
 
-        Suit(String string) {
-            this.string = string;
+        public Suit {
+            checkIndex(ordinal, 4);
         }
 
         public static Stream<Suit> suits() {
@@ -114,49 +113,46 @@ public record Card(Rank rank, Suit suit) {
         }
 
         @Override
+        public int compareTo(Suit that) {
+            return Byte.compare(this.ordinal, that.ordinal);
+        }
+
+        @Override
         public String toString() {
-            return string;
+            return "cdhs".substring(this.ordinal, this.ordinal + 1);
         }
     }
 
-    private static final Card[] cards = suits().flatMap(
-        suit -> ranks().map(rank -> new Card(rank, suit))
-    ).toArray(Card[]::new);
-
-    private static int ordinal(Rank rank, Suit suit) {
-        return rank.ordinal() + (suit.ordinal() * 13);
+    private static byte ordinal(Rank rank, Suit suit) {
+        return (byte) (rank.ordinal + (suit.ordinal * 13));
     }
+
+    private static final Card[] cards = suits().flatMap(
+        suit -> ranks().map(rank -> new Card(rank, suit, ordinal(rank, suit)))
+    ).toArray(Card[]::new);
 
     static Card unpack(long card) {
         return cards[Long.numberOfTrailingZeros(card)];
-    }
-
-    static Card card(Rank rank, Suit suit) {
-        return cards[Card.ordinal(rank, suit)];
     }
 
     public static Stream<Card> cards() {
         return stream(cards);
     }
 
-    public Rank rank() {
-        return rank;
-    }
-
-    public Suit suit() {
-        return suit;
+    public Card {
+        if (ordinal != ordinal(rank, suit)) {
+            throw new IllegalArgumentException(
+                "ordinal = %d does not represent a valid card".formatted(ordinal)
+            );
+        }
     }
 
     @Override
     public String toString() {
-        return rank.string + suit.string;
-    }
-
-    int ordinal() {
-        return Card.ordinal(rank, suit);
+        return rank.toString() + suit.toString();
     }
 
     long pack() {
-        return 1L << ordinal();
+        return 1L << ordinal;
     }
 }

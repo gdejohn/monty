@@ -2,10 +2,8 @@ package io.github.gdejohn.monty;
 
 import io.github.gdejohn.monty.Card.Cards;
 import io.github.gdejohn.monty.Card.Rank;
-import io.github.gdejohn.monty.Card.Suit;
 
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -13,7 +11,6 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
-import static java.util.Arrays.stream;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
 import static java.util.Map.Entry.comparingByValue;
@@ -24,7 +21,7 @@ import static java.util.stream.Collectors.toCollection;
 public enum Category {
     HIGH_CARD(5, 407, 23_294_460),
 
-    ONE_PAIR(5, 1_470, 58_627_800),
+    PAIR(5, 1_470, 58_627_800),
 
     TWO_PAIR(4, 763, 31_433_400) {
         @Override
@@ -35,7 +32,7 @@ public enum Category {
         }
     },
 
-    THREE_OF_A_KIND(5, 575, 6_461_620),
+    TRIPS(5, 575, 6_461_620),
 
     STRAIGHT(2, 10, 6_180_020) {
         @Override
@@ -44,7 +41,6 @@ public enum Category {
             var cards = Cards.unpack(hand.cards).collect(
                 groupingBy(
                     Card::rank,
-                    () -> new EnumMap<>(Rank.class),
                     maxBy(comparing(Card::suit))
                 )
             ).values().stream().flatMap(Optional::stream);
@@ -67,7 +63,7 @@ public enum Category {
 
     FULL_HOUSE(4, 156, 3_473_184),
 
-    FOUR_OF_A_KIND(5, 156, 224_848) {
+    QUADS(5, 156, 224_848) {
         @Override
         Stream<Card> cards(Hand hand) {
             var quads = Category.unpack(hand).limit(4);
@@ -108,15 +104,10 @@ public enum Category {
         this.hands = hands;
     }
 
-    static Stream<Category> categories() {
-        return stream(categories);
-    }
-
     private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
         return Cards.unpack(hand.cards).collect(
             groupingBy(
                 Card::suit,
-                () -> new EnumMap<>(Suit.class),
                 toCollection(() -> new TreeSet<>(order))
             )
         ).entrySet().stream().max(
@@ -136,7 +127,6 @@ public enum Category {
         return Cards.unpack(hand.cards).collect(
             groupingBy(
                 Card::rank,
-                () -> new EnumMap<>(Rank.class),
                 toCollection(() -> new TreeSet<>(comparing(Card::suit).reversed()))
             )
         ).entrySet().stream().sorted(
@@ -146,7 +136,7 @@ public enum Category {
         ).map(Entry::getValue).flatMap(Set::stream);
     }
 
-    final int pack(long ranks) {
-        return (this.ordinal() << Category.SHIFT) | (int) ranks;
+    final int pack(int ranks) {
+        return (this.ordinal() << Category.SHIFT) | ranks;
     }
 }
