@@ -131,12 +131,16 @@ public enum Category {
             )
         ).entrySet().stream().sorted(
             comparingInt(
-                (Entry<Rank, TreeSet<Card>> entry) -> entry.getValue().size()
+                (Entry<Rank,TreeSet<Card>> entry) -> entry.getValue().size()
             ).thenComparing(Entry::getKey).reversed()
         ).map(Entry::getValue).flatMap(Set::stream);
     }
 
     final int pack(int ranks) {
-        return (this.ordinal() << Category.SHIFT) | ranks;
+        return pack(0, ranks);
+    }
+
+    final int pack(int high, int low) {
+        return (this.ordinal() << Category.SHIFT) | (high << 13) | low;
     }
 }

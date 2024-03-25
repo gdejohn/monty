@@ -53,7 +53,7 @@ public record Card(Rank rank, Suit suit, byte ordinal) {
     }
 
     public record Rank(byte ordinal) implements Comparable<Rank> {
-        private static final Rank[] ranks = range(0, 13).mapToObj(ordinal -> new Rank((byte) ordinal)).toArray(Rank[]::new);
+        private static final Rank[] ranks = range(0, 13).mapToObj(Rank::new).toArray(Rank[]::new);
 
         public static final Rank TWO = ranks[0],
                                  THREE = ranks[1],
@@ -71,6 +71,10 @@ public record Card(Rank rank, Suit suit, byte ordinal) {
 
         public Rank {
             checkIndex(ordinal, 13);
+        }
+
+        private Rank(int ordinal) {
+            this((byte) ordinal);
         }
 
         static Rank unpack(int rank) {
@@ -97,7 +101,7 @@ public record Card(Rank rank, Suit suit, byte ordinal) {
     }
 
     public record Suit(byte ordinal) implements Comparable<Suit> {
-        private static final Suit[] suits = range(0, 4).mapToObj(ordinal -> new Suit((byte) ordinal)).toArray(Suit[]::new);
+        private static final Suit[] suits = range(0, 4).mapToObj(Suit::new).toArray(Suit[]::new);
 
         public static final Suit CLUBS = suits[0],
                                  DIAMONDS = suits[1],
@@ -106,6 +110,10 @@ public record Card(Rank rank, Suit suit, byte ordinal) {
 
         public Suit {
             checkIndex(ordinal, 4);
+        }
+
+        private Suit(int ordinal) {
+            this((byte) ordinal);
         }
 
         public static Stream<Suit> suits() {

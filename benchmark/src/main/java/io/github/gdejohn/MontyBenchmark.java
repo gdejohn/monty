@@ -53,12 +53,13 @@ public class MontyBenchmark {
     @OutputTimeUnit(SECONDS)
     public int evaluate() {
         var hand = Hand.empty();
-        hand = hand.deal(TWO.of(DIAMONDS));
-        hand = hand.deal(KING.of(SPADES));
-        hand = hand.deal(EIGHT.of(CLUBS));
         hand = hand.deal(EIGHT.of(HEARTS));
+        hand = hand.deal(EIGHT.of(DIAMONDS));
+        hand = hand.deal(EIGHT.of(CLUBS));
+        hand = hand.deal(TWO.of(DIAMONDS));
         hand = hand.deal(TWO.of(CLUBS));
         hand = hand.deal(ACE.of(DIAMONDS));
+        hand = hand.deal(KING.of(SPADES));
         return hand.evaluate();
     }
 }
