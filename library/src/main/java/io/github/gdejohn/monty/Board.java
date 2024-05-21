@@ -1,20 +1,19 @@
 package io.github.gdejohn.monty;
 
-import io.github.gdejohn.monty.Card.Cards;
+import static io.github.gdejohn.monty.Hand.hand;
 
-public final class Board extends Cards {
-    public static final Board PRE_FLOP = new Board();
+public final class Board {
+    final Hand partial;
+
+    final int count;
 
     private Board(Card... cards) {
-        super(cards);
+        this.partial = hand(cards);
+        this.count = cards.length;
     }
 
-    Hand hand() {
-        var hand = Hand.empty();
-        for (var card : cards) {
-            hand = hand.deal(card);
-        }
-        return hand;
+    static Board preflop() {
+        return new Board();
     }
 
     public static Board flop(Card first, Card second, Card third) {
@@ -27,5 +26,14 @@ public final class Board extends Cards {
 
     public static Board river(Card first, Card second, Card third, Card fourth, Card fifth) {
         return new Board(first, second, third, fourth, fifth);
+    }
+
+    long cards() {
+        return partial.cards();
+    }
+
+    @Override
+    public String toString() {
+        return Card.toString(Card.stream(cards()));
     }
 }

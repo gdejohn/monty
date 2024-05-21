@@ -1,12 +1,12 @@
 package io.github.gdejohn.monty;
 
-import io.github.gdejohn.monty.Card.Cards;
 import io.github.gdejohn.monty.Card.Rank;
+import io.github.gdejohn.monty.Card.Suit;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
@@ -19,29 +19,29 @@ import static java.util.stream.Collectors.maxBy;
 import static java.util.stream.Collectors.toCollection;
 
 public enum Category {
-    HIGH_CARD(5, 407, 23_294_460),
+    HIGH_CARD(23_294_460, 407, 5),
 
-    PAIR(5, 1_470, 58_627_800),
+    ONE_PAIR(58_627_800, 1_470, 5),
 
-    TWO_PAIR(4, 763, 31_433_400) {
+    TWO_PAIR(31_433_400, 763, 4) {
         @Override
-        Stream<Card> cards(Hand hand) {
-            var pairs = Category.unpack(hand).limit(4);
-            var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
+        Stream<Card> sort(Hand hand) {
+            var pairs = stream(hand).limit(4);
+            var kicker = stream(hand).skip(4).max(comparing(Card::rank)).stream();
             return Stream.concat(pairs, kicker);
         }
     },
 
-    TRIPS(5, 575, 6_461_620),
+    THREE_OF_A_KIND(6_461_620, 575, 5),
 
-    STRAIGHT(2, 10, 6_180_020) {
+    STRAIGHT(6_180_020, 10, 2) {
         @Override
-        Stream<Card> cards(Hand hand) {
-            var high = Rank.unpack(hand.evaluate());
-            var cards = Cards.unpack(hand.cards).collect(
+        Stream<Card> sort(Hand hand) {
+            Rank high = Rank.unpack(hand.evaluate());
+            Stream<Card> cards = Card.stream(hand.cards()).collect(
                 groupingBy(
                     Card::rank,
-                    maxBy(comparing(Card::suit))
+                    maxBy(comparing(Card::suit, Suit::compare))
                 )
             ).values().stream().flatMap(Optional::stream);
             if (high == FIVE) { // wheel
@@ -54,27 +54,27 @@ public enum Category {
         }
     },
 
-    FLUSH(7, 1_277, 4_047_644) {
+    FLUSH(4_047_644, 1_277, 7) {
         @Override
-        Stream<Card> cards(Hand hand) {
+        Stream<Card> sort(Hand hand) {
             return flush(hand, comparing(Card::rank).reversed()).limit(5);
         }
     },
 
-    FULL_HOUSE(4, 156, 3_473_184),
+    FULL_HOUSE(3_473_184, 156, 4),
 
-    QUADS(5, 156, 224_848) {
+    FOUR_OF_A_KIND(224_848, 156, 5) {
         @Override
-        Stream<Card> cards(Hand hand) {
-            var quads = Category.unpack(hand).limit(4);
-            var kicker = Category.unpack(hand).skip(4).max(comparing(Card::rank)).stream();
+        Stream<Card> sort(Hand hand) {
+            var quads = stream(hand).limit(4);
+            var kicker = stream(hand).skip(4).max(comparing(Card::rank)).stream();
             return Stream.concat(quads, kicker);
         }
     },
 
-    STRAIGHT_FLUSH(2, 10, 41_584) {
+    STRAIGHT_FLUSH(41_584, 10, 2) {
         @Override
-        Stream<Card> cards(Hand hand) {
+        Stream<Card> sort(Hand hand) {
             var high = Rank.unpack(hand.evaluate());
             if (high == FIVE) { // steel wheel
                 return flush(hand, reverseLowball).dropWhile(card -> card.rank() != high);
@@ -86,61 +86,57 @@ public enum Category {
         }
     };
 
-    private static final Comparator<Card> reverseLowball = comparingInt(card -> -(card.rank().ordinal() + 1) % 13);
+    private static final Comparator<Card> reverseLowball = comparingInt(
+        card -> -(card.rank().ordinal() + 1) % 13
+    );
 
     private static final int SHIFT = 26;
 
     private static final Category[] categories = Category.values();
 
-    final int bits;
+    final int hands;
 
     final int classes;
 
-    final int hands;
+    final int count;
 
-    Category(int bits, int classes, int hands) {
-        this.bits = bits;
-        this.classes = classes;
+    Category(int hands, int classes, int count) {
         this.hands = hands;
-    }
-
-    private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
-        return Cards.unpack(hand.cards).collect(
-            groupingBy(
-                Card::suit,
-                toCollection(() -> new TreeSet<>(order))
-            )
-        ).entrySet().stream().max(
-            comparingByValue(comparingInt(Set::size))
-        ).stream().map(Entry::getValue).flatMap(Set::stream);
+        this.classes = classes;
+        this.count = count;
     }
 
     static Category unpack(int value) {
         return categories[value >>> Category.SHIFT];
     }
 
-    Stream<Card> cards(Hand hand) {
-        return Category.unpack(hand).limit(5);
+    Stream<Card> sort(Hand hand) {
+        return stream(hand).limit(5);
     }
 
-    static Stream<Card> unpack(Hand hand) {
-        return Cards.unpack(hand.cards).collect(
+    private static Stream<Card> stream(Hand hand) {
+        return Card.stream(hand.cards()).collect(
             groupingBy(
                 Card::rank,
-                toCollection(() -> new TreeSet<>(comparing(Card::suit).reversed()))
+                toCollection(
+                    () -> new TreeSet<>(comparing(Card::suit, Suit::compare).reversed())
+                )
             )
         ).entrySet().stream().sorted(
             comparingInt(
                 (Entry<Rank,TreeSet<Card>> entry) -> entry.getValue().size()
             ).thenComparing(Entry::getKey).reversed()
-        ).map(Entry::getValue).flatMap(Set::stream);
+        ).map(Entry::getValue).flatMap(Collection::stream);
     }
 
-    final int pack(int ranks) {
-        return pack(0, ranks);
-    }
-
-    final int pack(int high, int low) {
-        return (this.ordinal() << Category.SHIFT) | (high << 13) | low;
+    private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
+        return Card.stream(hand.cards()).collect(
+            groupingBy(
+                Card::suit,
+                toCollection(() -> new TreeSet<>(order))
+            )
+        ).entrySet().stream().max(
+            comparingByValue(comparingInt(Collection::size))
+        ).stream().map(Entry::getValue).flatMap(Collection::stream);
     }
 }
