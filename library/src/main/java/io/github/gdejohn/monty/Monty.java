@@ -142,12 +142,19 @@ public final class Monty {
         }
     }
 
-    private static final long[][] pot = range(0, 24).mapToObj(
+    /** Least common multiple. */
+    private static BigInteger lcm(BigInteger a, BigInteger b) {
+        return a.multiply(b.divide(a.gcd(b)));
+    }
+
+    /** Least common multiple of integers ranging from 2 to n, inclusive. */
+    private static BigInteger lcm(int n) {
+        return rangeClosed(2, n).mapToObj(BigInteger::valueOf).reduce(ONE, Monty::lcm);
+    }
+
+    private static final long[][] pots = range(0, 24).mapToObj(
         players -> rangeClosed(0, players).mapToObj(BigInteger::valueOf).map(
-            split -> split.equals(ZERO) ? ZERO : rangeClosed(2, players).mapToObj(BigInteger::valueOf).reduce(
-                ONE,
-                (a, b) -> a.multiply(b.divide(a.gcd(b)))
-            ).divide(split)
+            split -> split.equals(ZERO) ? ZERO : lcm(players).divide(split)
         ).mapToLong(BigInteger::longValueExact).toArray()
     ).toArray(long[][]::new);
 
@@ -161,7 +168,7 @@ public final class Monty {
         private long trials;
 
         private Showdown() {
-            this.pot = Monty.pot[players];
+            this.pot = pots[players];
             this.winnings = 0;
             this.trials = 0;
         }
