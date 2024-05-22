@@ -83,21 +83,21 @@ public final class Monty {
      */
     public IntStream stream() {
         var parallel = true;
-        var spliterator = new Splits(rng);
+        var spliterator = new Simulator(rng);
         return StreamSupport.intStream(spliterator, parallel);
     }
 
-    private final class Splits implements Spliterator.OfInt {
+    private final class Simulator implements Spliterator.OfInt {
         private final Deck deck;
 
         private long trials;
 
-        private Splits(Deck deck, long trials) {
+        private Simulator(Deck deck, long trials) {
             this.deck = deck;
             this.trials = trials;
         }
 
-        Splits(SplittableGenerator rng) {
+        Simulator(SplittableGenerator rng) {
             this(deck(board, pocket, rng), Long.MAX_VALUE);
         }
 
@@ -116,7 +116,7 @@ public final class Monty {
             if (trials < 2) {
                 return null;
             }
-            return new Splits(deck.split(), trials - (trials >>>= 1));
+            return new Simulator(deck.split(), trials - (trials >>>= 1));
         }
 
         @Override
