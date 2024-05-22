@@ -9,12 +9,12 @@ public final class Board {
 
     final int count;
 
-    private Board(Card... cards) {
+    Board(Card... cards) {
         this.partial = hand(cards);
         this.count = cards.length;
     }
 
-    static Board preflop() {
+    public static Board preflop() {
         return new Board();
     }
 

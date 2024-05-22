@@ -1,10 +1,8 @@
 package io.github.gdejohn.monty;
 
-import io.github.gdejohn.monty.Deck.Generator;
 import io.github.gdejohn.monty.Monty.Showdown;
 import org.junit.jupiter.api.Test;
 
-import static io.github.gdejohn.monty.Board.flop;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.NINE;
@@ -12,17 +10,9 @@ import static io.github.gdejohn.monty.Card.Rank.SEVEN;
 import static io.github.gdejohn.monty.Card.Rank.TEN;
 import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.HEARTS;
-import static io.github.gdejohn.monty.Pocket.pocket;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MontyTest {
-    private static final int trials = 1 << 20,
-                              raise = 50,
-                                pot = 100;
-
-    private static final String equity = "0.5228",
-                                 value = "1.568";
-
     private static final byte[] seed = {
         +0x10, +0x2B, +0x38, -0x53,
         -0x12, -0x38, -0x6F, +0x1A,
@@ -35,20 +25,22 @@ class MontyTest {
     };
 
     private static Showdown showdown() {
-        var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
-        var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
-        var players = 4;
-        var rng = new Generator(seed);
-        return new Monty(pocket, board, players, rng).showdown(trials);
+        return Monty.rng(seed)
+                    .players(4)
+                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                    .pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
+                    .trials(1 << 20);
     }
 
     @Test
     void equity() {
-        assertThat(showdown().equity()).hasToString(equity);
+        assertThat(showdown().equity()).hasToString("0.5228");
     }
 
     @Test
     void expectedValue() {
-        assertThat(showdown().expectedValue(raise, pot)).hasToString(value);
+        int raise = 50;
+        int pot = 100;
+        assertThat(showdown().expectedValue(raise, pot)).hasToString("1.568");
     }
 }

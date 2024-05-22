@@ -11,7 +11,6 @@ import java.util.random.RandomGenerator.SplittableGenerator;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static io.github.gdejohn.monty.Board.preflop;
 import static io.github.gdejohn.monty.Deck.deck;
 import static java.lang.Integer.signum;
 import static java.math.BigInteger.ONE;
@@ -21,6 +20,59 @@ import static java.util.stream.IntStream.range;
 import static java.util.stream.IntStream.rangeClosed;
 
 public final class Monty {
+    public static final class Builder {
+        private final SplittableGenerator rng;
+
+        private Builder(SplittableGenerator rng) {
+            this.rng = rng;
+        }
+
+        public Builder.Board players(int players) {
+            return new Board(players);
+        }
+
+        public Builder.Board headsUp() {
+            return players(2);
+        }
+
+        public final class Board {
+            private final int players;
+
+            private Board(int players) {
+                this.players = players;
+            }
+
+            public Board.Pocket preflop() {
+                return new Pocket();
+            }
+
+            public Board.Pocket flop(Card first, Card second, Card third) {
+                return new Pocket(first, second, third);
+            }
+
+            public Board.Pocket turn(Card first, Card second, Card third, Card fourth) {
+                return new Pocket(first, second, third, fourth);
+            }
+
+            public Board.Pocket river(Card first, Card second, Card third, Card fourth, Card fifth) {
+                return new Pocket(first, second, third, fourth, fifth);
+            }
+
+            public final class Pocket {
+                private final io.github.gdejohn.monty.Board board;
+
+                private Pocket(Card... cards) {
+                    this.board = new io.github.gdejohn.monty.Board(cards);
+                }
+
+                public Monty pocket(Card first, Card second) {
+                    var pocket = new io.github.gdejohn.monty.Pocket(first, second);
+                    return new Monty(pocket, board, players, rng);
+                }
+            }
+        }
+    }
+
     private final Pocket pocket;
 
     private final Board board;
@@ -45,27 +97,23 @@ public final class Monty {
         this.rng = rng;
     }
 
-    public Monty(Pocket pocket, Board board, int players) {
-        this(pocket, board, players, new Generator());
+    public static Monty.Builder rng(SplittableGenerator rng) {
+        return new Builder(rng);
     }
 
-    public Monty(Pocket pocket, Board board, SplittableGenerator rng) {
-        this(pocket, board, 2, rng);
+    static Monty.Builder rng(byte[] seed) {
+        return rng(new Generator(seed));
     }
 
-    public Monty(Pocket pocket, Board board) {
-        this(pocket, board, 2);
+    public static Monty.Builder.Board players(int players) {
+        return rng(new Generator()).players(players);
     }
 
-    public Monty(Pocket pocket, int players) {
-        this(pocket, preflop(), players);
+    public static Monty.Builder.Board headsUp() {
+        return players(2);
     }
 
-    public Monty(Pocket pocket) {
-        this(pocket, 2);
-    }
-
-    public Showdown showdown(long trials) {
+    public Showdown trials(long trials) {
         return stream().limit(trials).collect(
             Showdown::new,
             Showdown::accumulate,
@@ -83,7 +131,7 @@ public final class Monty {
      */
     public IntStream stream() {
         var parallel = true;
-        var spliterator = new Simulation(rng);
+        var spliterator = new Simulation();
         return StreamSupport.intStream(spliterator, parallel);
     }
 
@@ -97,7 +145,7 @@ public final class Monty {
             this.trials = trials;
         }
 
-        Simulation(SplittableGenerator rng) {
+        Simulation() {
             this(deck(board, pocket, rng), Long.MAX_VALUE);
         }
 
@@ -142,14 +190,12 @@ public final class Monty {
         }
     }
 
-    /** Least common multiple. */
-    private static BigInteger lcm(BigInteger a, BigInteger b) {
-        return a.multiply(b.divide(a.gcd(b)));
-    }
-
     /** Least common multiple of integers ranging from 2 to n, inclusive. */
     private static BigInteger lcm(int n) {
-        return rangeClosed(2, n).mapToObj(BigInteger::valueOf).reduce(ONE, Monty::lcm);
+        return rangeClosed(2, n).mapToObj(BigInteger::valueOf).reduce(
+            ONE,
+            (a, b) -> a.multiply(b.divide(a.gcd(b)))
+        );
     }
 
     private static final long[][] pots = range(0, 24).mapToObj(

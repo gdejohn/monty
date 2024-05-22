@@ -4,34 +4,32 @@
 Texas hold 'em using Monte Carlo simulation.
 
 ```java
-var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
-var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
-int players = 4;
-int trials = 1_000_000;
+// tell monty your hole cards, the community cards, and the
+// number of players including yourself
+var monty = Monty.players(4)
+                 .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                 .pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
 
-// tell monty the hole cards, the community cards, and the
-// number of players
-var monty = new Monty(pocket, board, players);
-
-// a lazy, infinite, parallel stream of simulated outcomes,
+// get a lazy, infinite, parallel stream of simulated outcomes,
 // throughput scales linearly with the number of threads
 IntStream outcomes = monty.stream();
 
-// or summarize the outcomes
-var showdown = monty.showdown(trials);
+// or let monty run a given number of trials and summarize the
+// outcomes for you
+var showdown = monty.trials(1_000_000);
 
-// and report the average fraction of the pot won by the
-// player with the hole cards
+// your equity is the fraction of the pot that you won on
+// average across every trial
 BigDecimal equity = showdown.equity();
 
-// precision tends to increase with more simulated games,
-// subject to diminishing returns
+// precision tends to increase with more trials, subject to
+// diminishing returns
 assert Math.abs(equity.doubleValue() - 0.5228d) < 0.001d;
 
 var raise = 50;
 var pot = 100;
 
 // the expected value of a call is the ratio of average
-// winnings to a given raise
+// winnings to the size of the raise
 BigDecimal expectedValue = showdown.expectedValue(raise, pot);
 ```

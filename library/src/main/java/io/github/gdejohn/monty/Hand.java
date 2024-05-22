@@ -103,15 +103,13 @@ public final class Hand {
     /** Minimal perfect hash function based on combinatorial number system. */
     @Override
     public int hashCode() {
-        var hash = 0;
-        var cards = this.cards;
-        for (int k = 0; cards != 0; k++) {
+        int hash = 0, k = 0;
+        for (long cards = this.cards; cards != 0; cards &= cards - 1) {
             int card = Long.numberOfTrailingZeros(cards);
             int rank = card & 0b1111;
             int suit = card >>> 4;
-            int n = ordinal(rank, suit);
-            hash += choose[k][n];
-            cards &= cards - 1;
+            int n = Card.ordinal(rank, suit);
+            hash += choose[k++][n];
         }
         return hash; // index of these cards in lexicographic order
     }

@@ -21,20 +21,12 @@ public final class Deck {
             this.rng = rng;
         }
 
-        private Generator(String rng) {
-            this(SplittableGenerator.of(rng));
+        Generator(byte[] seed) {
+            this(RandomGeneratorFactory.<SplittableGenerator>of(DEFAULT_RNG).create(seed));
         }
 
         Generator() {
-            this(DEFAULT_RNG);
-        }
-
-        private Generator(String rng, byte[] seed) {
-            this(RandomGeneratorFactory.<SplittableGenerator>of(rng).create(seed));
-        }
-
-        Generator(byte[] seed) {
-            this(DEFAULT_RNG, seed);
+            this(SplittableGenerator.of(DEFAULT_RNG));
         }
 
         @Override

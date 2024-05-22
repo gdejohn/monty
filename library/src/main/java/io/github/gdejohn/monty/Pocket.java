@@ -7,15 +7,15 @@ public final class Pocket {
     /** Hole cards. */
     private final Card[] cards;
 
-    private Pocket(Card... cards) {
+    private Pocket(Card[] cards) {
+        if (cards[0].ordinal() == cards[1].ordinal()) {
+            throw new IllegalArgumentException("same card");
+        }
         this.cards = cards;
     }
 
-    public static Pocket pocket(Card first, Card second) {
-        if (first.ordinal() == second.ordinal()) {
-            throw new IllegalArgumentException("same card");
-        }
-        return new Pocket(first, second);
+    public Pocket(Card first, Card second) {
+        this(new Card[] {first, second});
     }
 
     /** Complete a given partial board evaluation using these hole cards. */

@@ -43,8 +43,8 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.Spliterator;
 import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 
-import static io.github.gdejohn.monty.Board.flop;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
 import static io.github.gdejohn.monty.Card.Rank.EIGHT;
 import static io.github.gdejohn.monty.Card.Rank.FIVE;
@@ -62,7 +62,6 @@ import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.DIAMONDS;
 import static io.github.gdejohn.monty.Card.Suit.HEARTS;
 import static io.github.gdejohn.monty.Card.Suit.SPADES;
-import static io.github.gdejohn.monty.Pocket.pocket;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.openjdk.jmh.annotations.Mode.Throughput;
 import static org.openjdk.jmh.annotations.Scope.Thread;
@@ -73,10 +72,14 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 public class MontyBenchmark {
     @State(Thread)
     public static class Simulation {
-        private static final Spliterator.OfInt SPLITERATOR = new Monty(
-            pocket(EIGHT.of(CLUBS), NINE.of(CLUBS)),
-            flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-        ).stream().spliterator();
+        private static IntStream stream() {
+            return Monty.headsUp()
+                        .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                        .pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
+                        .stream();
+        }
+
+        private static final Spliterator.OfInt SPLITERATOR = stream().spliterator();
 
         public final Spliterator.OfInt spliterator = SPLITERATOR.trySplit();
     }
