@@ -13,7 +13,7 @@ import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
 import static java.lang.Integer.signum;
-import static java.math.BigInteger.ONE;
+import static java.math.BigDecimal.ONE;
 import static java.math.BigInteger.ZERO;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.util.stream.IntStream.range;
@@ -190,17 +190,23 @@ public final class Monty {
         }
     }
 
-    /** Least common multiple of integers ranging from 2 to n, inclusive. */
-    private static BigInteger lcm(int n) {
-        return rangeClosed(2, n).mapToObj(BigInteger::valueOf).reduce(
-            ONE,
-            (a, b) -> a.multiply(b.divide(a.gcd(b)))
-        );
+    private static BigDecimal[] lcm() {
+        var lcm = new BigDecimal[24];
+        lcm[1] = ONE;
+        for (int n = 2; n < lcm.length; n++) {
+            var a = lcm[n - 1].toBigInteger();
+            var b = BigInteger.valueOf(n);
+            lcm[n] = new BigDecimal(a.multiply(b.divide(a.gcd(b))));
+        }
+        return lcm;
     }
 
-    private static final long[][] pots = range(0, 24).mapToObj(
+    /** lcm[n] is the least common multiple of the first n positive integers. */
+    private static final BigDecimal[] lcm = lcm();
+
+    private static final long[][] pots = range(0, lcm.length).mapToObj(
         players -> rangeClosed(0, players).mapToObj(BigInteger::valueOf).map(
-            split -> split.equals(ZERO) ? ZERO : lcm(players).divide(split)
+            split -> split.equals(ZERO) ? ZERO : lcm[players].toBigInteger().divide(split)
         ).mapToLong(BigInteger::longValueExact).toArray()
     ).toArray(long[][]::new);
 
@@ -235,7 +241,7 @@ public final class Monty {
 
         public BigDecimal equity(MathContext context) {
             var winnings = BigDecimal.valueOf(this.winnings);
-            var trials = BigDecimal.valueOf(this.trials).multiply(BigDecimal.valueOf(pot[1]));
+            var trials = BigDecimal.valueOf(this.trials).multiply(lcm[players]);
             return winnings.divide(trials, context);
         }
 
@@ -254,7 +260,7 @@ public final class Monty {
 
         private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
             var winnings = BigDecimal.valueOf(this.winnings);
-            var trials = BigDecimal.valueOf(this.trials).multiply(BigDecimal.valueOf(this.pot[1]));
+            var trials = BigDecimal.valueOf(this.trials).multiply(lcm[players]);
             return winnings.multiply(pot.add(raise)).divide(trials.multiply(raise), context);
         }
     }
