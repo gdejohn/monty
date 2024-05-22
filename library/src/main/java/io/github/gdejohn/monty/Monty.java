@@ -74,12 +74,12 @@ public final class Monty {
     }
 
     /**
-     * A lazy, infinite stream of simulated game outcomes.
+     * A lazy, infinite, parallel stream of simulated game outcomes.
      * <p>
-     * The outcome of a game is represented by an unsigned integer indicating the number of
+     * The outcome of a game is represented by a nonnegative integer indicating the number of
      * players that the player with the given hole cards splits the pot with, including that
-     * player: 0 means the player with the given hole cards lost, 1 means that player won, and
-     * n > 1 means an n-way tie.
+     * player: 0 means the player that player lost, 1 means that player won, and n > 1 means an
+     * n-way tie.
      */
     public IntStream stream() {
         var parallel = true;
