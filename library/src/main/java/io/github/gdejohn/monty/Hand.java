@@ -149,21 +149,21 @@ public final class Hand {
     /**
      * Determine the value of this hand.
      * <p>
-     * The value is an unsigned 30-bit integer representing the equivalence class of the best
+     * The value is a positive 30-bit integer representing the equivalence class of the best
      * five-card hand that can be made from the seven given cards, computed directly without
      * checking each of the 21 combinations (7 choose 5). Hands are ordered by their values: a
      * hand with a greater value beats a hand with a lesser value, two hands with equal values tie
      * each other.
      * <p>
      * There are 7,462 equivalence classes for five-card hands, but only 4,824 equivalence classes
-     * are possible when making the best five-card hand from seven cards. (For example, given the
+     * are possible when making the best five-card hand from seven cards. For example, given the
      * five cards [5s,5h,4h,3h,2h], there is no way of choosing two more cards from the rest of
      * the deck such that neither is included in the best five-card hand that can be made from
-     * those seven cards.) Hand values represent equivalence classes using the first 13 low-order
+     * those seven cards. Hand values represent equivalence classes using the first 13 low-order
      * bits for less significant ranks, the next 13 higher-order bits for more significant ranks
      * (possibly empty), and the last four high-order bits for the category of the hand.
      * <p>
-     * Hands are evaluated by first hashing them to a signed 5-bit integer ranging from -2 to 15
+     * Hands are evaluated by first hashing them to a 5-bit integer ranging from -2 to 15
      * (inclusive), constructed from the sign bits of values derived from the subwords of
      * {@link #cards} and {@link #ranks}. The hash function encodes the rank frequencies and the
      * presence of straights and flushes, determining the category of the hand and the
