@@ -43,16 +43,12 @@ class MontyTest {
     }
 
     @Test
-    void parallel() {
-        var showdown = showdown();
-        assertThat(showdown.equity()).hasToString(equity);
-        assertThat(showdown.expectedValue(raise, pot)).hasToString(value);
+    void equity() {
+        assertThat(showdown().equity()).hasToString(equity);
     }
 
     @Test
-    void sequential() {
-        var showdown = showdown();
-        assertThat(showdown.equity()).hasToString(equity);
-        assertThat(showdown.expectedValue(raise, pot)).hasToString(value);
+    void expectedValue() {
+        assertThat(showdown().expectedValue(raise, pot)).hasToString(value);
     }
 }
