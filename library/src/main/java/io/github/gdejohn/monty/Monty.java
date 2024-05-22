@@ -1,92 +1,76 @@
 package io.github.gdejohn.monty;
 
+import io.github.gdejohn.monty.Deck.Generator;
+
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.Spliterator;
-import java.util.SplittableRandom;
 import java.util.function.IntConsumer;
 import java.util.random.RandomGenerator.SplittableGenerator;
 import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Board.preflop;
 import static io.github.gdejohn.monty.Deck.deck;
 import static java.lang.Integer.signum;
-import static java.math.MathContext.UNLIMITED;
+import static java.math.BigInteger.ONE;
+import static java.math.BigInteger.ZERO;
 import static java.math.RoundingMode.HALF_EVEN;
+import static java.util.stream.IntStream.range;
+import static java.util.stream.IntStream.rangeClosed;
 
 public final class Monty {
-    private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
+    private final Pocket pocket;
 
-    /** Least common multiple of the integers from 1 to 23, inclusive. */
-    private static final BigDecimal POT = BigDecimal.valueOf(5_354_228_880L);
+    private final Board board;
 
-    private static final long[] WINNINGS = LongStream.range(0, 24).map(
-        split -> split == 0 ? 0 : POT.divide(BigDecimal.valueOf(split), UNLIMITED).longValueExact()
-    ).toArray();
+    private final int players;
 
-    private long winnings = 0;
+    private final SplittableGenerator rng;
 
-    private long trials = 0;
-
-    public Monty() {}
-
-    public void accumulate(int split) {
-        winnings = Math.addExact(winnings, WINNINGS[split]);
-        trials++;
-    }
-
-    public void combine(Monty monty) {
-        winnings = Math.addExact(winnings, monty.winnings);
-        trials += monty.trials;
-    }
-
-    private BigDecimal winnings() {
-        return BigDecimal.valueOf(winnings);
-    }
-
-    private BigDecimal trials() {
-        return BigDecimal.valueOf(trials).multiply(POT);
-    }
-
-    public BigDecimal equity() {
-        return equity(DEFAULT_CONTEXT);
-    }
-
-    public BigDecimal equity(MathContext context) {
-        return winnings().divide(trials(), context);
-    }
-
-    public BigDecimal expectedValue(long raise, long pot) {
-        return expectedValue(raise, pot, DEFAULT_CONTEXT);
-    }
-
-    public BigDecimal expectedValue(long raise, long pot, MathContext context) {
-        if (raise <= 0L) {
-            throw new IllegalArgumentException("raise = %d (must be positive)".formatted(raise));
-        } else if (pot <= 0L) {
-            throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
-        } else {
-            return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
+    public Monty(Pocket pocket, Board board, int players, SplittableGenerator rng) {
+        if (players < 2 || players > 23) {
+            throw new IllegalArgumentException(
+                "players = %d (must be greater than 1 and less than 24)".formatted(players)
+            );
+        } else if (board.stream().anyMatch(card -> pocket.stream().anyMatch(card::equals))) {
+            throw new IllegalArgumentException(
+                "pocket %s and board %s must be disjoint".formatted(pocket, board)
+            );
         }
+        this.pocket = pocket;
+        this.board = board;
+        this.players = players;
+        this.rng = rng;
     }
 
-    private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
-        return winnings().multiply(pot.add(raise)).divide(trials().multiply(raise), context);
+    public Monty(Pocket pocket, Board board, int players) {
+        this(pocket, board, players, new Generator());
     }
 
-    /** Heads up, preflop. */
-    public static IntStream showdown(Pocket pocket) {
-        return showdown(pocket, 1);
+    public Monty(Pocket pocket, Board board, SplittableGenerator rng) {
+        this(pocket, board, 2, rng);
     }
 
-    public static IntStream showdown(Pocket pocket, Board board) {
-        return showdown(pocket, board, 1);
+    public Monty(Pocket pocket, Board board) {
+        this(pocket, board, 2);
     }
 
-    public static IntStream showdown(Pocket pocket, int opponents) {
-        return showdown(pocket, preflop(), opponents);
+    public Monty(Pocket pocket, int players) {
+        this(pocket, preflop(), players);
+    }
+
+    public Monty(Pocket pocket) {
+        this(pocket, 2);
+    }
+
+    public Showdown showdown(long trials) {
+        return stream().limit(trials).collect(
+            Showdown::new,
+            Showdown::accumulate,
+            Showdown::combine
+        );
     }
 
     /**
@@ -97,62 +81,24 @@ public final class Monty {
      * player: 0 means the player with the given hole cards lost, 1 means that player won, and
      * n > 1 means an n-way tie.
      */
-    public static IntStream showdown(Pocket pocket, Board board, int opponents) {
-        return showdown(pocket, board, opponents, new SplittableRandom());
-    }
-
-    public static IntStream showdown(Pocket pocket, SplittableGenerator rng) {
-        return showdown(pocket, 1, rng);
-    }
-
-    public static IntStream showdown(Pocket pocket, Board board, SplittableGenerator rng) {
-        return showdown(pocket, board, 1, rng);
-    }
-
-    public static IntStream showdown(Pocket pocket, int opponents, SplittableGenerator rng) {
-        return showdown(pocket, preflop(), opponents, rng);
-    }
-
-    public static IntStream showdown(Pocket pocket, Board board, int opponents, SplittableGenerator rng) {
-        if (opponents < 1 || opponents > 22) {
-            throw new IllegalArgumentException(
-                "opponents = %d (must be greater than 0 and less than 23)".formatted(opponents)
-            );
-        } else if ((pocket.cards() & board.cards()) != 0) {
-            throw new IllegalArgumentException(
-                "pocket %s and board %s must be disjoint, but both contain %s".formatted(
-                    pocket,
-                    board,
-                    Card.toString(Card.stream(pocket.cards() & board.cards()))
-                )
-            );
-        }
+    public IntStream stream() {
         var parallel = true;
-        var spliterator = new Showdown(pocket, board, opponents, rng);
+        var spliterator = new Splits(rng);
         return StreamSupport.intStream(spliterator, parallel);
     }
 
-    private static final class Showdown implements Spliterator.OfInt {
-        private final Pocket pocket;
-
-        private final Board board;
-
-        private final int opponents;
-
+    private final class Splits implements Spliterator.OfInt {
         private final Deck deck;
 
         private long trials;
 
-        private Showdown(Pocket pocket, Board board, int opponents, Deck deck, long trials) {
-            this.pocket = pocket;
-            this.board = board;
-            this.opponents = opponents;
+        private Splits(Deck deck, long trials) {
             this.deck = deck;
             this.trials = trials;
         }
 
-        Showdown(Pocket pocket, Board board, int opponents, SplittableGenerator rng) {
-            this(pocket, board, opponents, deck(board, pocket, rng), Long.MAX_VALUE);
+        Splits(SplittableGenerator rng) {
+            this(deck(board, pocket, rng), Long.MAX_VALUE);
         }
 
         @Override
@@ -169,15 +115,8 @@ public final class Monty {
         public Spliterator.OfInt trySplit() {
             if (trials < 2) {
                 return null;
-            } else {
-                return new Showdown(
-                    pocket,
-                    board,
-                    opponents,
-                    deck.split(),
-                    trials - (trials >>>= 1)
-                );
             }
+            return new Splits(deck.split(), trials - (trials >>>= 1));
         }
 
         @Override
@@ -190,7 +129,7 @@ public final class Monty {
             var hand = deck.deal(board);
             int value = pocket.evaluate(hand);
             int split = 1;
-            for (int n = 0; n < opponents; n++) {
+            for (int n = 1; n < players; n++) {
                 switch (signum(value - deck.deal(hand).evaluate())) {
                     case +0: split++;
                     case +1: continue;
@@ -200,6 +139,70 @@ public final class Monty {
             }
             action.accept(split);
             return true;
+        }
+    }
+
+    private static final long[][] pot = range(0, 24).mapToObj(
+        players -> rangeClosed(0, players).mapToObj(BigInteger::valueOf).map(
+            split -> split.equals(ZERO) ? ZERO : rangeClosed(2, players).mapToObj(BigInteger::valueOf).reduce(
+                ONE,
+                (a, b) -> a.multiply(b.divide(a.gcd(b)))
+            ).divide(split)
+        ).mapToLong(BigInteger::longValueExact).toArray()
+    ).toArray(long[][]::new);
+
+    public final class Showdown {
+        private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
+
+        private final long[] pot;
+
+        private long winnings;
+
+        private long trials;
+
+        private Showdown() {
+            this.pot = Monty.pot[players];
+            this.winnings = 0;
+            this.trials = 0;
+        }
+
+        private void accumulate(int split) {
+            winnings = Math.addExact(winnings, pot[split]);
+            trials++;
+        }
+
+        private void combine(Showdown showdown) {
+            winnings = Math.addExact(winnings, showdown.winnings);
+            trials += showdown.trials;
+        }
+
+        public BigDecimal equity() {
+            return equity(DEFAULT_CONTEXT);
+        }
+
+        public BigDecimal equity(MathContext context) {
+            var winnings = BigDecimal.valueOf(this.winnings);
+            var trials = BigDecimal.valueOf(this.trials).multiply(BigDecimal.valueOf(pot[1]));
+            return winnings.divide(trials, context);
+        }
+
+        public BigDecimal expectedValue(long raise, long pot) {
+            return expectedValue(raise, pot, DEFAULT_CONTEXT);
+        }
+
+        public BigDecimal expectedValue(long raise, long pot, MathContext context) {
+            if (raise <= 0L) {
+                throw new IllegalArgumentException("raise = %d (must be positive)".formatted(raise));
+            } else if (pot <= 0L) {
+                throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
+            }
+            return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
+        }
+
+        private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
+            var winnings = BigDecimal.valueOf(this.winnings);
+            var trials = BigDecimal.valueOf(this.trials).multiply(BigDecimal.valueOf(this.pot[1]));
+            return winnings.multiply(pot.add(raise)).divide(trials.multiply(raise), context);
         }
     }
 }

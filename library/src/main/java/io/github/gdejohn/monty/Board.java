@@ -1,5 +1,7 @@
 package io.github.gdejohn.monty;
 
+import java.util.stream.Stream;
+
 import static io.github.gdejohn.monty.Hand.hand;
 
 public final class Board {
@@ -28,12 +30,12 @@ public final class Board {
         return new Board(first, second, third, fourth, fifth);
     }
 
-    long cards() {
-        return partial.cards();
+    public Stream<Card> stream() {
+        return partial.stream();
     }
 
     @Override
     public String toString() {
-        return Card.toString(Card.stream(cards()));
+        return Card.toString(stream());
     }
 }

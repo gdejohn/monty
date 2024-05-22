@@ -1,7 +1,6 @@
 package io.github.gdejohn.monty;
 
 import java.util.Arrays;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Hand.offset;
@@ -70,7 +69,7 @@ public final class Card {
         }
 
         public Card of(Suit suit) {
-            return cards[Card.ordinal(this.ordinal, suit.ordinal)];
+            return Card.of(this.ordinal, suit.ordinal);
         }
     }
 
@@ -97,7 +96,7 @@ public final class Card {
         }
 
         /** Method reference target for alphabetical comparator. */
-        public static int compare(Suit first, Suit second) {
+        static int compare(Suit first, Suit second) {
             return first.ordinal - second.ordinal();
         }
 
@@ -136,27 +135,19 @@ public final class Card {
         suit -> Rank.every().map(rank -> new Card(rank, suit))
     ).toArray(Card[]::new);
 
-    static Card unpack(long card) {
-        return cards[Long.numberOfTrailingZeros(card)];
+    static Card of(int rank, int suit) {
+        return cards[ordinal(rank, suit)];
     }
 
     public static Stream<Card> every() {
         return Arrays.stream(cards);
     }
 
-    static Stream<Card> stream(long cards) {
-        return LongStream.iterate(
-            cards,
-            packed -> packed != 0,
-            packed -> packed & (packed - 1)
-        ).mapToObj(Card::unpack);
-    }
-
     static String toString(Stream<Card> cards) {
         return cards.map(Card::toString).collect(joining(",", "(", ")"));
     }
 
-    private static int ordinal(int rank, int suit) {
+    static int ordinal(int rank, int suit) {
         return rank + (suit * 13);
     }
 

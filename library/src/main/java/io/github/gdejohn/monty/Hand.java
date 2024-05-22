@@ -1,5 +1,10 @@
 package io.github.gdejohn.monty;
 
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
+
+import static io.github.gdejohn.monty.Card.ordinal;
+
 /** A seven-card poker hand evaluator for Texas hold 'em. */
 public final class Hand {
     /**
@@ -62,11 +67,19 @@ public final class Hand {
         return hand;
     }
 
-    long cards() {
-        return (long) slice(cards, 0)
-             | (long) slice(cards, 1) << 13
-             | (long) slice(cards, 2) << 26
-             | (long) slice(cards, 3) << 39;
+    public Stream<Card> stream() {
+        return LongStream.iterate(
+            this.cards,
+            cards -> cards != 0,
+            cards -> cards & (cards - 1)
+        ).mapToObj(
+            cards -> {
+                int card = Long.numberOfTrailingZeros(cards);
+                int rank = card & 0b1111;
+                int suit = card >>> 4;
+                return Card.of(rank, suit);
+            }
+        );
     }
 
     public int size() {
@@ -90,14 +103,17 @@ public final class Hand {
     /** Minimal perfect hash function based on combinatorial number system. */
     @Override
     public int hashCode() {
-        var rank = 0;
-        var cards = cards();
-        for (var k = 0; cards != 0; k++) {
-            var n = Long.numberOfTrailingZeros(cards);
-            rank += choose[k][n];
+        var hash = 0;
+        var cards = this.cards;
+        for (int k = 0; cards != 0; k++) {
+            int card = Long.numberOfTrailingZeros(cards);
+            int rank = card & 0b1111;
+            int suit = card >>> 4;
+            int n = ordinal(rank, suit);
+            hash += choose[k][n];
             cards &= cards - 1;
         }
-        return rank; // index of these cards in lexicographic order
+        return hash; // index of these cards in lexicographic order
     }
 
     private static final int[][] choose = choose();

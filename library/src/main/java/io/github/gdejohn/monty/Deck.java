@@ -1,11 +1,15 @@
 package io.github.gdejohn.monty;
 
 import java.util.Arrays;
+import java.util.Set;
 import java.util.random.RandomGenerator.SplittableGenerator;
 import java.util.random.RandomGeneratorFactory;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Board.preflop;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Stream.concat;
 
 public final class Deck {
     static final class Generator implements SplittableGenerator {
@@ -89,14 +93,8 @@ public final class Deck {
     }
 
     public static Deck deck(Board board, Pocket pocket, SplittableGenerator rng) {
-        long dead = board.cards() | pocket.cards();
-        var deck = dead ^ -1L >>> -52;
-        var cards = new Card[Long.bitCount(deck)];
-        for (var index = 0; index < cards.length; index++) {
-            var card = deck & -deck;
-            cards[index] = Card.unpack(card);
-            deck ^= card;
-        }
+        Set<Card> dead = concat(board.stream(), pocket.stream()).collect(toSet());
+        Card[] cards = Card.every().filter(not(dead::contains)).toArray(Card[]::new);
         return new Deck(cards, rng);
     }
 

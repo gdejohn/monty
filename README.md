@@ -4,35 +4,34 @@
 Texas hold 'em using Monte Carlo simulation.
 
 ```java
-void main() {
-    var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
-    var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
-    int opponents = 3;
+var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
+var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
+int players = 4;
+int trials = 1_000_000;
 
-    // a lazy, infinite, parallel stream of simulated outcomes
-    IntStream showdown = Monty.showdown(pocket, board, opponents);
+// tell monty the hole cards, the community cards, and the
+// number of players
+var monty = new Monty(pocket, board, players);
 
-    // collect the winnings with a custom mutable reduction,
-    // throughput scales linearly with the number of threads
-    var monty = showdown.limit(1_000_000).collect(
-        Monty::new,
-        Monty::accumulate,
-        Monty::combine
-    );
+// a lazy, infinite, parallel stream of simulated outcomes,
+// throughput scales linearly with the number of threads
+IntStream outcomes = monty.stream();
 
-    // the estimated equity is the average fraction of the pot
-    // won by the player with the given hole cards
-    BigDecimal equity = monty.equity();
+// or summarize the outcomes
+var showdown = monty.showdown(trials);
 
-    // precision tends to increase with more simulated games,
-    // subject to diminishing returns
-    assert Math.abs(equity.doubleValue() - 0.5228d) < 0.001d;
+// and report the average fraction of the pot won by the
+// player with the hole cards
+BigDecimal equity = showdown.equity();
 
-    var raise = 50;
-    var pot = 100;
+// precision tends to increase with more simulated games,
+// subject to diminishing returns
+assert Math.abs(equity.doubleValue() - 0.5228d) < 0.001d;
 
-    // the expected value of a call is the ratio of estimated
-    // winnings to the given raise
-    BigDecimal expectedValue = monty.expectedValue(raise, pot);
-}
+var raise = 50;
+var pot = 100;
+
+// the expected value of a call is the ratio of average
+// winnings to a given raise
+BigDecimal expectedValue = showdown.expectedValue(raise, pot);
 ```

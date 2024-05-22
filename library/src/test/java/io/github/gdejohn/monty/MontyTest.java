@@ -1,9 +1,8 @@
 package io.github.gdejohn.monty;
 
 import io.github.gdejohn.monty.Deck.Generator;
+import io.github.gdejohn.monty.Monty.Showdown;
 import org.junit.jupiter.api.Test;
-
-import java.util.stream.IntStream;
 
 import static io.github.gdejohn.monty.Board.flop;
 import static io.github.gdejohn.monty.Card.Rank.ACE;
@@ -17,9 +16,9 @@ import static io.github.gdejohn.monty.Pocket.pocket;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MontyTest {
-    private static final long trials = 1L << 20,
-                               raise = 50,
-                                 pot = 100;
+    private static final int trials = 1 << 20,
+                              raise = 50,
+                                pot = 100;
 
     private static final String equity = "0.5228",
                                  value = "1.568";
@@ -35,33 +34,25 @@ class MontyTest {
         +0x6F, -0x3E, +0x3D, -0x78
     };
 
-    private static IntStream showdown() {
+    private static Showdown showdown() {
         var pocket = pocket(EIGHT.of(CLUBS), NINE.of(CLUBS));
         var board = flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS));
-        var opponents = 3;
+        var players = 4;
         var rng = new Generator(seed);
-        return Monty.showdown(pocket, board, opponents, rng);
+        return new Monty(pocket, board, players, rng).showdown(trials);
     }
 
     @Test
     void parallel() {
-        var monty = showdown().limit(trials).collect(
-            Monty::new,
-            Monty::accumulate,
-            Monty::combine
-        );
-        assertThat(monty.equity()).hasToString(equity);
-        assertThat(monty.expectedValue(raise, pot)).hasToString(value);
+        var showdown = showdown();
+        assertThat(showdown.equity()).hasToString(equity);
+        assertThat(showdown.expectedValue(raise, pot)).hasToString(value);
     }
 
     @Test
     void sequential() {
-        var monty = showdown().sequential().limit(trials).collect(
-            Monty::new,
-            Monty::accumulate,
-            Monty::combine
-        );
-        assertThat(monty.equity()).hasToString(equity);
-        assertThat(monty.expectedValue(raise, pot)).hasToString(value);
+        var showdown = showdown();
+        assertThat(showdown.equity()).hasToString(equity);
+        assertThat(showdown.expectedValue(raise, pot)).hasToString(value);
     }
 }

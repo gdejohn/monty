@@ -73,10 +73,10 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 public class MontyBenchmark {
     @State(Thread)
     public static class Simulation {
-        private static final Spliterator.OfInt SPLITERATOR = Monty.showdown(
+        private static final Spliterator.OfInt SPLITERATOR = new Monty(
             pocket(EIGHT.of(CLUBS), NINE.of(CLUBS)),
             flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-        ).spliterator();
+        ).stream().spliterator();
 
         public final Spliterator.OfInt spliterator = SPLITERATOR.trySplit();
     }
@@ -111,7 +111,7 @@ public class MontyBenchmark {
          * The first 14 subsequences correspond one-to-one with the jump table entries. The
          * accompanying comments describe the hands that map to those entries and indicate in
          * parentheses the total number of subsequences that map to them and the ratio of the
-         * probabilities of these subsequences mapping to them versus any seven-card hand.
+         * probabilities that they are mapped to by these subsequences versus any seven-card hand.
          */
         private static final Card[] cards = {
             QUEEN.of(CLUBS),   //          3 2 2  (1, 0.03125 / 0.000924 =   34)

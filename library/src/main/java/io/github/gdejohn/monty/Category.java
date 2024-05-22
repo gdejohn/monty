@@ -38,7 +38,7 @@ public enum Category {
         @Override
         Stream<Card> sort(Hand hand) {
             Rank high = Rank.unpack(hand.evaluate());
-            Stream<Card> cards = Card.stream(hand.cards()).collect(
+            Stream<Card> cards = hand.stream().collect(
                 groupingBy(
                     Card::rank,
                     maxBy(comparing(Card::suit, Suit::compare))
@@ -115,7 +115,7 @@ public enum Category {
     }
 
     private static Stream<Card> stream(Hand hand) {
-        return Card.stream(hand.cards()).collect(
+        return hand.stream().collect(
             groupingBy(
                 Card::rank,
                 toCollection(
@@ -130,7 +130,7 @@ public enum Category {
     }
 
     private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
-        return Card.stream(hand.cards()).collect(
+        return hand.stream().collect(
             groupingBy(
                 Card::suit,
                 toCollection(() -> new TreeSet<>(order))
