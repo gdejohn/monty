@@ -10,8 +10,6 @@ import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
 import static java.lang.Integer.signum;
-import static java.util.stream.IntStream.range;
-import static java.util.stream.IntStream.rangeClosed;
 
 public final class Monty {
     public static final class Builder {
@@ -187,32 +185,9 @@ public final class Monty {
         }
     }
 
-    private static long[] lcm() {
-        var lcm = new long[24];
-        lcm[1] = 1L;
-        for (int n = 2; n < lcm.length; n++) {
-            long a = lcm[n - 1];
-            long b = n;
-            while (b != 0) {
-                long r = a % b;
-                a = b;
-                b = r;
-            }
-            lcm[n] = lcm[n - 1] * (n / a);
-        }
-        return lcm;
-    }
-
-    /** The least common multiples of the ranges [1,n] for each index n. */
-    private static final long[] lcm = lcm();
-
-    private static final long[][] pots = range(0, lcm.length).mapToObj(
-        players -> rangeClosed(0, players).mapToLong(
-            split -> split == 0 ? 0L : lcm[players] / split
-        ).toArray()
-    ).toArray(long[][]::new);
-
     public final class Showdown {
+        private static final long[][] pots = pots();
+
         private final long[] pot;
 
         private long winnings;
@@ -236,7 +211,7 @@ public final class Monty {
         }
 
         public double equity() {
-            return (double) winnings / lcm[players] / trials;
+            return (double) winnings / pot[1] / trials;
         }
 
         public double expectedValue(long pot, long raise) {
@@ -249,7 +224,27 @@ public final class Monty {
                     "pot < raise (pot = %d, raise = %d)".formatted(pot, raise)
                 );
             }
-            return equity() / raise * (pot + raise);
+            return equity() * (pot + raise) / raise;
+        }
+
+        private static long[][] pots() {
+            var pots = new long[24][];
+            long lcm = 1;
+            for (int players = 2; players < pots.length; players++) {
+                long gcd = lcm;
+                long divisor = players;
+                while (divisor != 0) {
+                    long remainder = gcd % divisor;
+                    gcd = divisor;
+                    divisor = remainder;
+                }
+                lcm *= players / gcd;
+                pots[players] = new long[players + 1];
+                for (int split = 1; split <= players; split++) {
+                    pots[players][split] = lcm / split;
+                }
+            }
+            return pots;
         }
     }
 }
