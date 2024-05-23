@@ -20,16 +20,16 @@ var showdown = monty.trials(1_000_000);
 
 // your equity is the fraction of the pot that you won on
 // average across every trial
-BigDecimal equity = showdown.equity();
+double equity = showdown.equity();
 
 // precision tends to increase with more trials, subject to
 // diminishing returns
-assert Math.abs(equity.doubleValue() - 0.5228d) < 0.001d;
+assert Math.abs(equity - 0.5228d) < 0.001d;
 
 var raise = 50;
 var pot = 100;
 
 // the expected value of a call is the ratio of average
 // winnings to the size of the raise
-BigDecimal expectedValue = showdown.expectedValue(raise, pot);
+double expectedValue = showdown.expectedValue(raise, pot);
 ```

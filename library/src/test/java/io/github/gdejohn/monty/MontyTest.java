@@ -11,6 +11,7 @@ import static io.github.gdejohn.monty.Card.Rank.TEN;
 import static io.github.gdejohn.monty.Card.Suit.CLUBS;
 import static io.github.gdejohn.monty.Card.Suit.HEARTS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 class MontyTest {
     private static final byte[] seed = {
@@ -34,13 +35,13 @@ class MontyTest {
 
     @Test
     void equity() {
-        assertThat(showdown().equity()).hasToString("0.5228");
+        assertThat(showdown().equity()).isCloseTo(0.5228d, within(0.0001d));
     }
 
     @Test
     void expectedValue() {
-        int raise = 50;
         int pot = 100;
-        assertThat(showdown().expectedValue(raise, pot)).hasToString("1.568");
+        int raise = 50;
+        assertThat(showdown().expectedValue(pot, raise)).isCloseTo(1.568d, within(0.001d));
     }
 }

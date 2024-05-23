@@ -2,9 +2,6 @@ package io.github.gdejohn.monty;
 
 import io.github.gdejohn.monty.Deck.Generator;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.MathContext;
 import java.util.Spliterator;
 import java.util.function.IntConsumer;
 import java.util.random.RandomGenerator.SplittableGenerator;
@@ -13,9 +10,6 @@ import java.util.stream.StreamSupport;
 
 import static io.github.gdejohn.monty.Deck.deck;
 import static java.lang.Integer.signum;
-import static java.math.BigDecimal.ONE;
-import static java.math.BigInteger.ZERO;
-import static java.math.RoundingMode.HALF_EVEN;
 import static java.util.stream.IntStream.range;
 import static java.util.stream.IntStream.rangeClosed;
 
@@ -164,7 +158,10 @@ public final class Monty {
             if (trials < 2) {
                 return null;
             }
-            return new Simulation(deck.split(), trials - (trials >>>= 1));
+            return new Simulation(
+                deck.split(),
+                trials - (trials >>>= 1)
+            );
         }
 
         @Override
@@ -190,29 +187,32 @@ public final class Monty {
         }
     }
 
-    private static BigDecimal[] lcm() {
-        var lcm = new BigDecimal[24];
-        lcm[1] = ONE;
+    private static long[] lcm() {
+        var lcm = new long[24];
+        lcm[1] = 1L;
         for (int n = 2; n < lcm.length; n++) {
-            var a = lcm[n - 1].toBigInteger();
-            var b = BigInteger.valueOf(n);
-            lcm[n] = new BigDecimal(a.multiply(b.divide(a.gcd(b))));
+            long a = lcm[n - 1];
+            long b = n;
+            while (b != 0) {
+                long r = a % b;
+                a = b;
+                b = r;
+            }
+            lcm[n] = lcm[n - 1] * (n / a);
         }
         return lcm;
     }
 
-    /** lcm[n] is the least common multiple of the first n positive integers. */
-    private static final BigDecimal[] lcm = lcm();
+    /** The least common multiples of the ranges [1,n] for each index n. */
+    private static final long[] lcm = lcm();
 
     private static final long[][] pots = range(0, lcm.length).mapToObj(
-        players -> rangeClosed(0, players).mapToObj(BigInteger::valueOf).map(
-            split -> split.equals(ZERO) ? ZERO : lcm[players].toBigInteger().divide(split)
-        ).mapToLong(BigInteger::longValueExact).toArray()
+        players -> rangeClosed(0, players).mapToLong(
+            split -> split == 0 ? 0L : lcm[players] / split
+        ).toArray()
     ).toArray(long[][]::new);
 
     public final class Showdown {
-        private static final MathContext DEFAULT_CONTEXT = new MathContext(4, HALF_EVEN);
-
         private final long[] pot;
 
         private long winnings;
@@ -235,33 +235,21 @@ public final class Monty {
             trials += showdown.trials;
         }
 
-        public BigDecimal equity() {
-            return equity(DEFAULT_CONTEXT);
+        public double equity() {
+            return (double) winnings / lcm[players] / trials;
         }
 
-        public BigDecimal equity(MathContext context) {
-            var winnings = BigDecimal.valueOf(this.winnings);
-            var trials = BigDecimal.valueOf(this.trials).multiply(lcm[players]);
-            return winnings.divide(trials, context);
-        }
-
-        public BigDecimal expectedValue(long raise, long pot) {
-            return expectedValue(raise, pot, DEFAULT_CONTEXT);
-        }
-
-        public BigDecimal expectedValue(long raise, long pot, MathContext context) {
-            if (raise <= 0L) {
-                throw new IllegalArgumentException("raise = %d (must be positive)".formatted(raise));
-            } else if (pot <= 0L) {
-                throw new IllegalArgumentException("pot = %d (must be positive)".formatted(pot));
+        public double expectedValue(long pot, long raise) {
+            if (raise < 1) {
+                throw new IllegalArgumentException(
+                    "raise = %d (must be positive)".formatted(raise)
+                );
+            } else if (pot < raise) {
+                throw new IllegalArgumentException(
+                    "pot < raise (pot = %d, raise = %d)".formatted(pot, raise)
+                );
             }
-            return expectedValue(BigDecimal.valueOf(raise), BigDecimal.valueOf(pot), context);
-        }
-
-        private BigDecimal expectedValue(BigDecimal raise, BigDecimal pot, MathContext context) {
-            var winnings = BigDecimal.valueOf(this.winnings);
-            var trials = BigDecimal.valueOf(this.trials).multiply(lcm[players]);
-            return winnings.multiply(pot.add(raise)).divide(trials.multiply(raise), context);
+            return equity() / raise * (pot + raise);
         }
     }
 }
