@@ -26,10 +26,10 @@ double equity = showdown.equity();
 // diminishing returns
 assert Math.abs(equity - 0.5228d) < 0.001d;
 
-var raise = 50;
 var pot = 100;
+var raise = 50;
 
 // the expected value of a call is the ratio of average
 // winnings to the size of the raise
-double expectedValue = showdown.expectedValue(raise, pot);
+double expectedValue = showdown.expectedValue(pot, raise);
 ```
