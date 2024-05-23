@@ -36,6 +36,9 @@ public final class Deck {
 
         @Override
         public int nextInt(int bound) {
+            if (bound < 1) {
+                throw new IllegalArgumentException("bound must be positive");
+            }
             var n = Integer.toUnsignedLong(rng.nextInt()) * bound;
             if ((n & 0xFFFF_FFFFL) < bound) {
                 var threshold = (1L << 31) % bound;
@@ -115,7 +118,7 @@ public final class Deck {
     }
 
     public boolean empty() {
-        return bound > 0;
+        return bound == 0;
     }
 
     public void shuffle() {
@@ -123,9 +126,6 @@ public final class Deck {
     }
 
     public Card deal() {
-        if (bound < 1) {
-            throw new IllegalStateException("no cards remaining");
-        }
         int index = rng.nextInt(bound--);
         var card = cards[index];
         cards[index] = cards[bound];

@@ -229,9 +229,9 @@ public final class Monty {
 
         private static long[][] pots() {
             var pots = new long[24][];
-            long lcm = 1;
+            long lcm = 1; // least common multiple
             for (int players = 2; players < pots.length; players++) {
-                long gcd = lcm;
+                long gcd = lcm; // greatest common divisor
                 long divisor = players;
                 while (divisor != 0) {
                     long remainder = gcd % divisor;
