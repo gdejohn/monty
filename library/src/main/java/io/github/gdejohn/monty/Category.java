@@ -44,11 +44,13 @@ public enum Category {
                     maxBy(comparing(Card::suit, Suit::compare))
                 )
             ).values().stream().flatMap(Optional::stream);
-            if (high == FIVE) { // wheel
-                return cards.sorted(reverseLowball).dropWhile(card -> card.rank() != high);
+            if (high.equals(FIVE)) { // wheel
+                return cards.sorted(reverseLowball).dropWhile(
+                    card -> !card.rank().equals(high)
+                );
             } else {
                 return cards.sorted(comparing(Card::rank).reversed()).dropWhile(
-                    card -> card.rank() != high
+                    card -> !card.rank().equals(high)
                 ).limit(5);
             }
         }
@@ -75,12 +77,14 @@ public enum Category {
     STRAIGHT_FLUSH(41_584, 10, 2) {
         @Override
         Stream<Card> sort(Hand hand) {
-            var high = Rank.unpack(hand.evaluate());
-            if (high == FIVE) { // steel wheel
-                return flush(hand, reverseLowball).dropWhile(card -> card.rank() != high);
+            Rank high = Rank.unpack(hand.evaluate());
+            if (high.equals(FIVE)) { // steel wheel
+                return flush(hand, reverseLowball).dropWhile(
+                    card -> !card.rank().equals(high)
+                );
             } else {
                 return flush(hand, comparing(Card::rank).reversed()).dropWhile(
-                    card -> card.rank() != high
+                    card -> !card.rank().equals(high)
                 ).limit(5);
             }
         }
@@ -119,7 +123,9 @@ public enum Category {
             groupingBy(
                 Card::rank,
                 toCollection(
-                    () -> new TreeSet<>(comparing(Card::suit, Suit::compare).reversed())
+                    () -> new TreeSet<>(
+                        comparing(Card::suit, Suit::compare).reversed()
+                    )
                 )
             )
         ).entrySet().stream().sorted(
