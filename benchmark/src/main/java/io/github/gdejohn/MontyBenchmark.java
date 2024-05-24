@@ -70,18 +70,18 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 @OutputTimeUnit(SECONDS)
 @Threads(1)
 public class MontyBenchmark {
+    private static IntStream stream() {
+        return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
+                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                    .headsUp()
+                    .stream();
+    }
+
+    private static final Spliterator.OfInt spliterator = stream().spliterator();
+
     @State(Thread)
     public static class Simulation {
-        private static IntStream stream() {
-            return Monty.headsUp()
-                        .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-                        .pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
-                        .stream();
-        }
-
-        private static final Spliterator.OfInt SPLITERATOR = stream().spliterator();
-
-        public final Spliterator.OfInt spliterator = SPLITERATOR.trySplit();
+        public final Spliterator.OfInt spliterator = MontyBenchmark.spliterator.trySplit();
     }
 
     @Benchmark

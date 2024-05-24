@@ -27,10 +27,10 @@ class MontyTest {
 
     private static Showdown showdown() {
         return Monty.rng(seed)
-                    .players(4)
-                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
                     .pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
-                    .trials(1 << 20);
+                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                    .players(4)
+                    .limit(1 << 20);
     }
 
     @Test

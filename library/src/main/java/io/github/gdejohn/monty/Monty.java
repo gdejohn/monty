@@ -19,51 +19,52 @@ public final class Monty {
             this.rng = rng;
         }
 
-        public Builder.Board players(int players) {
-            return new Board(players);
+        public Builder.Pocket pocket(Card first, Card second) {
+            return new Pocket(first, second);
         }
 
-        public Builder.Board headsUp() {
-            return players(2);
-        }
+        public final class Pocket {
+            private final io.github.gdejohn.monty.Pocket pocket;
 
-        public final class Board {
-            private final int players;
-
-            private Board(int players) {
-                this.players = players;
+            private Pocket(Card first, Card second) {
+                this.pocket = new io.github.gdejohn.monty.Pocket(first, second);
             }
 
-            public Board.Pocket preflop() {
-                return new Pocket();
+            public Pocket.Board preflop() {
+                return new Board();
             }
 
-            public Board.Pocket flop(Card first, Card second, Card third) {
-                return new Pocket(first, second, third);
+            public Pocket.Board flop(Card first, Card second, Card third) {
+                return new Board(first, second, third);
             }
 
-            public Board.Pocket turn(Card first, Card second, Card third, Card fourth) {
-                return new Pocket(first, second, third, fourth);
+            public Pocket.Board turn(Card first, Card second, Card third, Card fourth) {
+                return new Board(first, second, third, fourth);
             }
 
-            public Board.Pocket river(Card first, Card second, Card third, Card fourth, Card fifth) {
-                return new Pocket(first, second, third, fourth, fifth);
+            public Pocket.Board river(Card first, Card second, Card third, Card fourth, Card fifth) {
+                return new Board(first, second, third, fourth, fifth);
             }
 
-            public final class Pocket {
+            public final class Board {
                 private final io.github.gdejohn.monty.Board board;
 
-                private Pocket(Card... cards) {
+                private Board(Card... cards) {
                     this.board = new io.github.gdejohn.monty.Board(cards);
                 }
 
-                public Monty pocket(Card first, Card second) {
-                    var pocket = new io.github.gdejohn.monty.Pocket(first, second);
-                    return new Monty(pocket, board, players, rng);
+                public Monty players(int players) {
+                    return new Monty(rng, pocket, board, players);
+                }
+
+                public Monty headsUp() {
+                    return players(2);
                 }
             }
         }
     }
+
+    private final SplittableGenerator rng;
 
     private final Pocket pocket;
 
@@ -71,9 +72,7 @@ public final class Monty {
 
     private final int players;
 
-    private final SplittableGenerator rng;
-
-    public Monty(Pocket pocket, Board board, int players, SplittableGenerator rng) {
+    public Monty(SplittableGenerator rng, Pocket pocket, Board board, int players) {
         if (players < 2 || players > 23) {
             throw new IllegalArgumentException(
                 "players = %d (must be greater than 1 and less than 24)".formatted(players)
@@ -83,10 +82,10 @@ public final class Monty {
                 "pocket %s and board %s must be disjoint".formatted(pocket, board)
             );
         }
+        this.rng = rng;
         this.pocket = pocket;
         this.board = board;
         this.players = players;
-        this.rng = rng;
     }
 
     public static Monty.Builder rng(SplittableGenerator rng) {
@@ -97,15 +96,11 @@ public final class Monty {
         return rng(new Generator(seed));
     }
 
-    public static Monty.Builder.Board players(int players) {
-        return rng(new Generator()).players(players);
+    public static Monty.Builder.Pocket pocket(Card first, Card second) {
+        return rng(new Generator()).pocket(first, second);
     }
 
-    public static Monty.Builder.Board headsUp() {
-        return players(2);
-    }
-
-    public Showdown trials(long trials) {
+    public Showdown limit(long trials) {
         return stream().limit(trials).collect(
             Showdown::new,
             Showdown::accumulate,
