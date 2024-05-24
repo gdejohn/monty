@@ -118,8 +118,7 @@ public final class Monty {
      * <p>
      * The outcome of a game is represented by a nonnegative integer indicating the number of
      * players that the player with the given hole cards splits the pot with, including that
-     * player: 0 means the player that player lost, 1 means that player won, and n > 1 means an
-     * n-way tie.
+     * player: 0 means that player lost, 1 means that player won, and n > 1 means an n-way tie.
      */
     public IntStream stream() {
         var parallel = true;
