@@ -20,7 +20,7 @@ The outcome of a trial is represented by a nonnegative integer indicating the nu
 that you split the pot with, including yourself: 0 means you lost, 1 means you won, and n > 1
 means an n-way tie. Throughput scales linearly with the number of threads.
 
-Or you can let monty run a given number of trials and summarize the outcomes for you:
+Or monty can run a given number of trials and summarize the outcomes for you:
 ```java
 var showdown = monty.trials(1_000_000);
 ```
