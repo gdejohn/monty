@@ -1,148 +1,100 @@
 package io.github.gdejohn.monty;
 
-import io.github.gdejohn.monty.Card.Rank;
 import io.github.gdejohn.monty.Card.Suit;
 
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import static io.github.gdejohn.monty.Card.Rank.FIVE;
+import static io.github.gdejohn.monty.Card.offset;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.Map.Entry.comparingByValue;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.maxBy;
-import static java.util.stream.Collectors.toCollection;
+import static java.util.Comparator.comparingLong;
 
+/// The category of a [hand][Hand].
 public enum Category {
-    HIGH_CARD(23_294_460, 407, 5),
+    HIGH_CARD(5, 407, 23_294_460),
 
-    ONE_PAIR(58_627_800, 1_470, 5),
+    ONE_PAIR(5, 1_470, 58_627_800),
 
-    TWO_PAIR(31_433_400, 763, 4) {
+    TWO_PAIR(4, 763, 31_433_400),
+
+    THREE_OF_A_KIND(5, 575, 6_461_620),
+
+    STRAIGHT(2, 10, 6_180_020) {
+        private static final long SUIT = 1L << offset(3)  // spades
+                                       | 1L << offset(2)  // hearts
+                                       | 1L << offset(1)  // diamonds
+                                       | 1L << offset(0); // clubs
+
+        private static int straight(int high) {
+            return -(high << 9) & (high << 14) - 1;
+        }
+
         @Override
-        Stream<Card> sort(Hand hand) {
-            var pairs = stream(hand).limit(4);
-            var kicker = stream(hand).skip(4).max(comparing(Card::rank)).stream();
-            return Stream.concat(pairs, kicker);
+        Comparator<Card> order(Hand hand, int value) {
+            return comparingLong(
+                (Card card) -> (hand.mask() & (SUIT << card.rank().ordinal())) >>> card.offset()
+            ).thenComparing(super.order(hand, straight(value & -value)));
         }
     },
 
-    THREE_OF_A_KIND(6_461_620, 575, 5),
-
-    STRAIGHT(6_180_020, 10, 2) {
+    FLUSH(7, 1_277, 4_047_644) {
         @Override
-        Stream<Card> sort(Hand hand) {
-            Rank high = Rank.unpack(hand.evaluate());
-            Stream<Card> cards = hand.stream().collect(
-                groupingBy(
-                    Card::rank,
-                    maxBy(comparing(Card::suit, Suit::compare))
-                )
-            ).values().stream().flatMap(Optional::stream);
-            if (high.equals(FIVE)) { // wheel
-                return cards.sorted(reverseLowball).dropWhile(
-                    card -> !card.rank().equals(high)
-                );
-            } else {
-                return cards.sorted(comparing(Card::rank).reversed()).dropWhile(
-                    card -> !card.rank().equals(high)
-                ).limit(5);
-            }
+        Comparator<Card> order(Hand hand, int value) {
+            return comparing(
+                Card::suit,
+                comparingInt(hand::count).reversed()
+            ).thenComparing(super.order(hand, value));
         }
     },
 
-    FLUSH(4_047_644, 1_277, 7) {
-        @Override
-        Stream<Card> sort(Hand hand) {
-            return flush(hand, comparing(Card::rank).reversed()).limit(5);
-        }
-    },
+    FULL_HOUSE(4, 156, 3_473_184),
 
-    FULL_HOUSE(3_473_184, 156, 4),
+    FOUR_OF_A_KIND(5, 156, 224_848),
 
-    FOUR_OF_A_KIND(224_848, 156, 5) {
+    STRAIGHT_FLUSH(2, 10, 41_584) {
         @Override
-        Stream<Card> sort(Hand hand) {
-            var quads = stream(hand).limit(4);
-            var kicker = stream(hand).skip(4).max(comparing(Card::rank)).stream();
-            return Stream.concat(quads, kicker);
-        }
-    },
-
-    STRAIGHT_FLUSH(41_584, 10, 2) {
-        @Override
-        Stream<Card> sort(Hand hand) {
-            Rank high = Rank.unpack(hand.evaluate());
-            if (high.equals(FIVE)) { // steel wheel
-                return flush(hand, reverseLowball).dropWhile(
-                    card -> !card.rank().equals(high)
-                );
-            } else {
-                return flush(hand, comparing(Card::rank).reversed()).dropWhile(
-                    card -> !card.rank().equals(high)
-                ).limit(5);
-            }
+        Comparator<Card> order(Hand hand, int value) {
+            return FLUSH.order(hand, value).thenComparing(STRAIGHT.order(hand, value));
         }
     };
 
-    private static final Comparator<Card> reverseLowball = comparingInt(
-        card -> -(card.rank().ordinal() + 1) % 13
-    );
-
-    private static final int SHIFT = 26;
+    static final int OFFSET = 26;
 
     private static final Category[] categories = Category.values();
 
-    final int hands;
-
-    final int classes;
-
+    /// The number of bits needed to represent a hand in this category.
     final int count;
 
-    Category(int hands, int classes, int count) {
-        this.hands = hands;
-        this.classes = classes;
+    /// The number of seven-card hand equivalence classes in this category.
+    final int classes;
+
+    /// The number of seven-card hands in this category.
+    final int hands;
+
+    Category(int count, int classes, int hands) {
         this.count = count;
+        this.classes = classes;
+        this.hands = hands;
     }
 
-    static Category unpack(int value) {
-        return categories[value >>> Category.SHIFT];
+    /// Every category, in ascending order.
+    public static Stream<Category> all() {
+        return Arrays.stream(categories);
     }
 
-    Stream<Card> sort(Hand hand) {
-        return stream(hand).limit(5);
+    static Category of(int value) {
+        return categories[value >>> Category.OFFSET];
     }
 
-    private static Stream<Card> stream(Hand hand) {
-        return hand.stream().collect(
-            groupingBy(
-                Card::rank,
-                toCollection(
-                    () -> new TreeSet<>(
-                        comparing(Card::suit, Suit::compare).reversed()
-                    )
-                )
-            )
-        ).entrySet().stream().sorted(
+    Comparator<Card> order(Hand hand, int value) {
+        int SIGNIFICANCE = 1 << 13 | 1;
+        return comparing(
+            Card::rank,
             comparingInt(
-                (Entry<Rank,TreeSet<Card>> entry) -> entry.getValue().size()
-            ).thenComparing(Entry::getKey).reversed()
-        ).map(Entry::getValue).flatMap(Collection::stream);
-    }
-
-    private static Stream<Card> flush(Hand hand, Comparator<Card> order) {
-        return hand.stream().collect(
-            groupingBy(
-                Card::suit,
-                toCollection(() -> new TreeSet<>(order))
+                rank -> value & SIGNIFICANCE << rank.ordinal()
             )
-        ).entrySet().stream().max(
-            comparingByValue(comparingInt(Collection::size))
-        ).stream().map(Entry::getValue).flatMap(Collection::stream);
+        ).thenComparing(Card::suit, comparingInt(Suit::ordinal)).reversed();
     }
 }

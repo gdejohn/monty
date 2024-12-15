@@ -4,40 +4,43 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.gdejohn</groupId>
-    <artifactId>monty-library</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <artifactId>monty</artifactId>
     <packaging>jar</packaging>
 
-    <name>monty library</name>
+    <name>monty</name>
+    <description>Library for estimating equity and expected value in Texas hold 'em</description>
+    <url>https://github.com/gdejohn/monty</url>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <release>22</release>
-    </properties>
+    <scm>
+        <connection>scm:git:https://github.com/gdejohn/monty.git</connection>
+        <developerConnection>scm:git:git@github.com:gdejohn/monty.git</developerConnection>
+        <url>https://github.com/gdejohn/monty</url>
+    </scm>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/gdejohn/monty/issues</url>
+    </issueManagement>
+    <distributionManagement>
+        <downloadUrl>https://github.com/gdejohn/monty/releases</downloadUrl>
+    </distributionManagement>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.junit</groupId>
-                <artifactId>junit-bom</artifactId>
-                <version>5.10.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <parent>
+        <groupId>io.github.gdejohn</groupId>
+        <artifactId>monty-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
 
     <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId> <!-- https://github.com/PicnicSupermarket/error-prone-support/pull/976 -->
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>3.26.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -45,38 +48,9 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <release>${release}</release>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.4.1</version>
-                <executions>
-                    <execution>
-                        <id>enforce-maven</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireMavenVersion>
-                                    <version>3.3.9</version>
-                                </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.0</version>
                 <configuration>
-                    <release>${release}</release>
                     <additionalOptions>
                         <additionalOption>--override-methods=summary</additionalOption>
                     </additionalOptions>
@@ -98,7 +72,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -109,25 +82,9 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
-                <configuration>
-                    <argLine>--enable-preview</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>2.16.1</version>
-                <configuration>
-                    <generateBackupPoms>false</generateBackupPoms>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.10</version>
+                <version>0.8.12</version>
                 <executions>
                     <execution>
                         <goals>
@@ -146,7 +103,7 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <version>1.16.1</version>
+                <version>1.17.0</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.pitest</groupId>
