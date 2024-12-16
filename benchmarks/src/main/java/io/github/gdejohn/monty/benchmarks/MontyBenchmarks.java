@@ -29,7 +29,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.github.gdejohn;
+package io.github.gdejohn.monty.benchmarks;
 
 import io.github.gdejohn.monty.Card;
 import io.github.gdejohn.monty.Deck;
@@ -74,8 +74,8 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 public class MontyBenchmarks {
     private static IntStream stream() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
-                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-                    .stream();
+            .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+            .stream();
     }
 
     private static final Spliterator.OfInt spliterator = stream().spliterator();
@@ -93,7 +93,7 @@ public class MontyBenchmarks {
     private static IntStream streamDefault() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
                     .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-                    .rng(SplittableGenerator.of("L128X128MixRandom"))
+                    .rng(SplittableGenerator.of("L128X128MixRandom")) // TODO
                     .stream();
     }
 
@@ -216,6 +216,12 @@ public class MontyBenchmarks {
     }
 
     @Benchmark
+    public Card deal(RandomDealer dealer) {
+        dealer.deck.shuffle();
+        return dealer.deck.deal();
+    }
+
+    @Benchmark
     public void evaluateShared(RandomDealer dealer, Blackhole blackhole) {
         dealer.deck.shuffle();
         Hand partial = Hand.empty();
@@ -247,6 +253,15 @@ public class MontyBenchmarks {
         return hand.evaluate();
     }
 
+    @Benchmark
+    public Hand partialEvaluation() {
+        var hand = Hand.empty();
+        for (int index = 0; index < 7; index++) {
+            hand = hand.add(cards[index]);
+        }
+        return hand;
+    }
+
     @State(Thread)
     public static class DefaultDealer {
         public final Deck deck = new Deck(SplittableGenerator.of("L128X128MixRandom"));
@@ -263,10 +278,8 @@ public class MontyBenchmarks {
     }
 
     @Benchmark
-    public void deal(DefaultDealer dealer, Blackhole blackhole) {
+    public Card dealDefault(DefaultDealer dealer) {
         dealer.deck.shuffle();
-        for (int n = 0; n < 7; n++) {
-            blackhole.consume(dealer.deck.deal());
-        }
+        return dealer.deck.deal();
     }
 }

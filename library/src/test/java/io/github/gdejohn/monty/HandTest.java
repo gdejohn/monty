@@ -111,22 +111,6 @@ class HandTest {
     }
 
     @Test
-    void benchmark() {
-        var blackhole = 0;
-        var hands = new Hand[6];
-        for (var cards = new int[7]; cards[0] < 46; cards[0]++)
-            for (hands[0] = Hand.empty().add(deck[cards[0]]), cards[1] = cards[0] + 1; cards[1] < 47; cards[1]++)
-                for (hands[1] = hands[0].add(deck[cards[1]]), cards[2] = cards[1] + 1; cards[2] < 48; cards[2]++)
-                    for (hands[2] = hands[1].add(deck[cards[2]]), cards[3] = cards[2] + 1; cards[3] < 49; cards[3]++)
-                        for (hands[3] = hands[2].add(deck[cards[3]]), cards[4] = cards[3] + 1; cards[4] < 50; cards[4]++)
-                            for (hands[4] = hands[3].add(deck[cards[4]]), cards[5] = cards[4] + 1; cards[5] < 51; cards[5]++)
-                                for (hands[5] = hands[4].add(deck[cards[5]]), cards[6] = cards[5] + 1; cards[6] < 52; cards[6]++)
-                                     blackhole |= hands[5].add(deck[cards[6]]).evaluate();
-
-        assertThat(blackhole).isEqualTo(-1 >>> -30);
-    }
-
-    @Test
     void highCard() {
         var hand = Hand.of(
             TWO.of(CLUBS),
