@@ -74,8 +74,8 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 public class MontyBenchmarks {
     private static IntStream stream() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
-            .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-            .stream();
+                    .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
+                    .stream();
     }
 
     private static final Spliterator.OfInt spliterator = stream().spliterator();
@@ -229,7 +229,7 @@ public class MontyBenchmarks {
             partial = partial.add(dealer.deck.deal());
         }
         for (int players = 0; players < 10; players++) {
-            var hand = partial.add(dealer.deck.deal()).add(dealer.deck.deal());
+            Hand hand = partial.add(dealer.deck.deal()).add(dealer.deck.deal());
             blackhole.consume(hand.evaluate());
         }
     }
