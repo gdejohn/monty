@@ -93,7 +93,7 @@ public class MontyBenchmarks {
     private static IntStream streamDefault() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
                     .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-                    .rng(SplittableGenerator.of("L128X128MixRandom")) // TODO
+                    .rng(SplittableGenerator.of("L128X128MixRandom"))
                     .stream();
     }
 
