@@ -72,6 +72,8 @@ import static org.openjdk.jmh.annotations.Scope.Thread;
 @OutputTimeUnit(SECONDS)
 @Threads(1)
 public class MontyBenchmarks {
+    private static final String DEFAULT_RNG = "L128X128MixRandom";
+
     private static IntStream stream() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
                     .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
@@ -93,7 +95,7 @@ public class MontyBenchmarks {
     private static IntStream streamDefault() {
         return Monty.pocket(EIGHT.of(CLUBS), NINE.of(CLUBS))
                     .flop(SEVEN.of(CLUBS), TEN.of(CLUBS), ACE.of(HEARTS))
-                    .rng(SplittableGenerator.of("L128X128MixRandom"))
+                    .rng(SplittableGenerator.of(DEFAULT_RNG))
                     .stream();
     }
 
@@ -264,7 +266,7 @@ public class MontyBenchmarks {
 
     @State(Thread)
     public static class DefaultDealer {
-        public final Deck deck = new Deck(SplittableGenerator.of("L128X128MixRandom"));
+        public final Deck deck = new Deck(SplittableGenerator.of(DEFAULT_RNG));
     }
 
     @Benchmark
