@@ -3,24 +3,28 @@ package io.github.gdejohn.monty;
 import io.github.gdejohn.monty.Card.Rank;
 import io.github.gdejohn.monty.Card.Suit;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Card.offset;
+import static java.util.stream.IntStream.range;
 
-/// A seven-card poker hand evaluator for Texas hold 'em.
+/// Seven-card poker hand evaluation for Texas hold 'em.
 ///
 /// Mostly bitwise logical operators and shifts, some integer arithmetic (no multiplication, no
-/// division, no modulus), five reads from a 16KB lookup table (comfortably fits in L1 cache),
-/// nearly branchless (one small jump table, no loops, no conditional statements), garbage free,
-/// no standard library, everything final or effectively final.
+/// division, no modulo), five reads from a 16KB lookup table (comfortably fits in L1 cache),
+/// nearly branchless (one small jump table, no loops, no conditional statements, no ternary
+/// operator), garbage free, no standard library, everything final or effectively final.
 public final class Hand implements Iterable<Card> {
     /// A bit vector representing ranks grouped by suit.
     ///
-    /// There are four 16-bit blocks, one for each suit. The positions of 1-bits in the 13
-    /// low-order bits of a block indicate which ranks occur with the suit represented by that
-    /// block. The three high-order bits in each block are unused.
+    /// There are four 16-bit blocks, one for each suit. This documentation orders suits ascending
+    /// alphabetically from least significant bits to most significant bits, but any order works
+    /// as long as it's used consistently. The positions of 1-bits in the 13 low-order bits of a
+    /// block indicate which ranks occur in this hand with the suit represented by that block. The
+    /// three high-order bits in each block `***` are unused.
     ///
     /// The cards `[As,Ah,Ad,Jd,Jc,4c,2c]` are represented like this:
     ///
@@ -32,14 +36,14 @@ public final class Hand implements Iterable<Card> {
     ///
     /// @see Card#offset(int)
     /// @see #slice(int, long)
-    private final long cards;
+    final long cards;
 
     /// A bit vector representing ranks grouped by frequency.
     ///
     /// There are four 16-bit blocks. The blocks represent the frequency of a rank, increasing
     /// from least to most significant bits. The positions of 1-bits in the 13 low-order bits of a
     /// block indicate which ranks occur with the frequency represented by that block. The three
-    /// high-order bits in each block are unused.
+    /// high-order bits in each block `***` are unused.
     ///
     /// The rank frequencies for the cards `[As,Ah,Ad,Jd,Jc,4c,2c]` are represented like this:
     ///
@@ -52,9 +56,9 @@ public final class Hand implements Iterable<Card> {
     /// @see Card#offset(int)
     /// @see #slice(int, long)
     /// @see #COUNT
-    private final long ranks;
+    final long ranks;
 
-    /// Make a new hand with the given [cards][#cards] and [ranks][#ranks].
+    /// Make a hand with the given [cards][#cards] and [ranks][#ranks].
     private Hand(long cards, long ranks) {
         this.cards = cards;
         this.ranks = ranks;
@@ -67,117 +71,202 @@ public final class Hand implements Iterable<Card> {
         return EMPTY;
     }
 
+    /// Every seven-card hand.
+    public static Stream<Hand> all() {
+        return range(0, 46).boxed().flatMap(
+            a -> range(a + 1, 47).boxed().flatMap(
+                b -> range(b + 1, 48).boxed().flatMap(
+                    c -> range(c + 1, 49).boxed().flatMap(
+                        d -> range(d + 1, 50).boxed().flatMap(
+                            e -> range(e + 1, 51).boxed().flatMap(
+                                f -> range(f + 1, 52).mapToObj(
+                                    g -> Hand.of(
+                                        Card.CARDS[a],
+                                        Card.CARDS[b],
+                                        Card.CARDS[c],
+                                        Card.CARDS[d],
+                                        Card.CARDS[e],
+                                        Card.CARDS[f],
+                                        Card.CARDS[g]
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    /// Make a hand containing the given `cards`.
+    ///
+    /// @throws IllegalArgumentException if there are more than seven `cards`
+    /// @throws IllegalArgumentException if there are duplicate `cards`
     public static Hand of(Card... cards) {
+        if (cards.length > 7) {
+            throw new IllegalArgumentException(
+                "too many cards %s".formatted(Arrays.toString(cards))
+            );
+        }
         var hand = Hand.empty();
         for (var card : cards) {
             hand = hand.add(card);
         }
         if (hand.size() != cards.length) {
-            throw new IllegalArgumentException("duplicate cards");
+            throw new IllegalArgumentException(
+                "duplicate cards %s".formatted(Arrays.toString(cards))
+            );
         }
         return hand;
     }
 
-    /// A sliding mask that extracts frequencies from [ranks][#ranks].
-    private static final long COUNT = 1L << offset(2)  // trips
-                                    | 1L << offset(1)  // pairs
-                                    | 1L << offset(0); // kickers
-
-    /// Make a new hand containing the given card and this hand's cards.
+    /// Make a hand containing the given card and this hand's cards.
     ///
     /// Hands that contain exactly seven distinct cards can be [evaluated][#evaluate()].
-    /// Intermediate hands represent partial evaluations that can be reused for the community
-    /// cards shared by every player.
+    /// Intermediate hands represent partial evaluations that can be reused for the community cards
+    /// shared by every player.
     public Hand add(Card card) {
-        int ordinal = Rank.ordinal(card.offset());
-        long rank = ranks & COUNT << ordinal;
+        int rank = Rank.ordinal(card.offset);
+        long mask = ranks & (COUNT << rank);
         return new Hand(
             cards | card.mask(),
-            ranks ^ rank | (rank << offset(1)) | ((rank - 1 >>> -1) << ordinal)
+            ranks ^ mask | (mask << offset(1)) | ((mask - 1 >>> -1) << rank)
         );
     }
 
-    /// Determine the value of this hand.
+    /// A sliding mask used to extract frequencies from [#ranks].
+    private static final long COUNT = 1L << offset(2) | 1L << offset(1) | 1L;
+
+    /// Determine the value of this hand, assuming it contains exactly seven distinct cards.
     ///
     /// The value is a positive 30-bit integer representing the equivalence class of the best
-    /// five-card hand that can be made from the seven [cards][#add(Card)] in this hand, computed
-    /// directly without checking each of the 21 combinations (7 choose 5). Hands are ordered by
-    /// their values: a hand with a greater value beats a hand with a lesser value, two hands with
-    /// equal values tie each other.
+    /// five-card hand that can be made from the seven cards in this hand, computed directly
+    /// without checking each of the 21 combinations (7 choose 5). Hands are ordered by their
+    /// values: a hand with a greater value beats a hand with a lesser value, two hands with equal
+    /// values tie each other.
     ///
     /// Hand values represent equivalence classes using the first 13 low-order bits for less
     /// significant ranks, the next 13 bits for more significant ranks (possibly empty), and the
-    /// last 4 bits for the category of the hand. There are 7,462 equivalence classes for
-    /// five-card hands, but only 4,824 equivalence classes are possible when making the best
-    /// five-card hand from seven cards. For example, given the five cards `[5s,5h,4h,3h,2h]`,
-    /// there is no way of choosing two other cards such that neither is included in the best
-    /// five-card hand that can be made from those seven cards.
+    /// last 4 bits for the category of the hand. There are 7,462 equivalence classes for five-card
+    /// hands, but only 4,824 equivalence classes are possible when making the best five-card hand
+    /// from seven cards. For example, given the five cards `[5s,5h,4h,3h,2h]`, there is no way of
+    /// choosing two other cards such that neither is included in the best five-card hand that can
+    /// be made from those seven cards.
     ///
-    /// Hands are evaluated by first hashing them to a 5-bit integer ranging from -2 to 15,
-    /// inclusive. The hash function encodes rank frequencies and the presence of straights and
-    /// flushes, determining the category of the hand and the significance of each distinct rank.
-    /// This partitions all 133,784,560 seven-card hands (52 choose 7) into 14 buckets such that
-    /// every hand in each bucket can be evaluated with the same expression, which is selected by
-    /// a tableswitch on the hash code.
+    /// Hands are evaluated by first hashing them to a 5-bit integer in the range `[-2..15]`
+    /// (-2 to 15, inclusive). The hash function encodes the frequencies of pairs `[0..3]`,
+    /// three-of-a-kinds `[0..2]`, four-of-a-kinds `[0..1]`, straights `[0..1]`, flushes `[0..1]`,
+    /// and straight flushes `[0..1]`. This partitions all 133,784,560 seven-card hands (52 choose
+    /// 7\) into 14 buckets such that every hand in each bucket can be evaluated with the same
+    /// expression, which is selected by a tableswitch on the hash code.
     public int evaluate() {
         int kickers = slice(0, ranks),
               pairs = slice(1, ranks),
               trips = slice(2, ranks),
               quads = slice(3, ranks),
-              value = values[kickers | pairs | trips | quads],
+           straight = values[kickers | pairs | trips | quads],
               flush = values[slice(0, cards)]  // clubs
                     | values[slice(1, cards)]  // diamonds
                     | values[slice(2, cards)]  // hearts
                     | values[slice(3, cards)], // spades
-           category = ((-pairs ^ -drop(drop(pairs))) >>> -1)   << 3
-                    | (-(drop(pairs) | drop(trips)) >>> -1)    << 2
-                    | (-trips >>> -1 | (flush | -flush) >> -1) << 1
-                    | (-quads >>> -1 | (value & (flush - 1)) >>> -4);
-        return switch (category) {
-            case +0b0000 -> evaluate(0, value); // high card
-            case +0b1000 -> evaluate(1, pairs, drop(drop(kickers))); // one pair
-            case +0b1100 -> evaluate(2, pairs, drop(drop(kickers))); // two pair
-            case +0b0100 -> evaluate(2, drop(pairs), drop(last(pairs) | kickers)); // two pair
-            case +0b0010 -> evaluate(3, trips, drop(drop(kickers))); // three of a kind
-            case +0b1111 -> evaluate(4, ~value); // straight
-            case ~0b0001 -> evaluate(5, flush); // flush
-            case +0b1010 -> evaluate(6, trips, pairs); // full house
-            case +0b1110 -> evaluate(6, trips, drop(pairs)); // full house
-            case +0b0110 -> evaluate(6, drop(trips), last(trips)); // full house
-            case +0b0001 -> evaluate(7, quads, drop(drop(kickers))); // four of a kind
-            case +0b1001 -> evaluate(7, quads, drop(pairs | kickers)); // four of a kind
-            case +0b0011 -> evaluate(7, quads, trips); // four of a kind
-            case ~0b0000 -> evaluate(8, ~flush); // straight flush
-            default -> -1; // invalid hand
+               hash = (( (-blsr(blsr(pairs))              ^     -pairs ) >>> -4) &  0b1000)
+                    | ((-(      blsr(trips)               | blsr(pairs)) >>> -3) &  0b0100)
+                    | ((  (   flush | -flush     ) >>  -2 |     -trips   >>> -2) & -0b0010)
+                    | ((  (straight & (flush - 1)) >>> -4 |     -quads   >>> -1) &  0b1111);
+        return switch (hash) {
+            case  0b1000 -> onePair(pairs, blsr(blsr(kickers)));
+            case  0b1100 -> twoPair(pairs, blsr(blsr(kickers)));
+            case  0b0100 -> twoPair(blsr(pairs), blsr(blsi(pairs) | kickers));
+            case  0b0010 -> threeOfAKind(trips, blsr(blsr(kickers)));
+            case  0b1010 -> fullHouse(trips, pairs);
+            case  0b1110 -> fullHouse(trips, blsr(pairs));
+            case  0b0110 -> fullHouse(blsr(trips), blsi(trips));
+            case  0b0001 -> fourOfAKind(quads, blsr(blsr(kickers)));
+            case  0b1001 -> fourOfAKind(quads, blsr(pairs | kickers));
+            case  0b0011 -> fourOfAKind(quads, trips);
+            case -0b0010 -> flush(flush);
+            case  0b1111 -> straight(~straight);
+            case -0b0001 -> straightFlush(~flush);
+            case  0b0000 -> blsr(blsr(kickers)); // high card
+            default -> throw new AssertionError("invalid hand");
         };
     }
 
-    /// Pack the category and ranks together.
-    private static int evaluate(int category, int ranks) {
-        return category << Category.OFFSET | ranks;
-    }
-
-    /// Pack the category, high-order ranks, and low-order ranks together.
-    private static int evaluate(int category, int high, int low) {
-        return evaluate(category, high << 13 | low);
-    }
-
-    /// Flip the least significant 1-bit.
-    private static int drop(int ranks) {
-        return ranks & ranks - 1;
-    }
-
-    /// Flip every 1-bit except for the least significant one.
-    private static int last(int ranks) {
-        return ranks & -ranks;
-    }
-
     /// Extract the nth 16-bit subword from a bit vector.
+    ///
+    /// ```java
+    /// assert slice(1, 0b0000001111000000_1110000000000111L)
+    ///              == 0b0000001111000000;
+    /// ```
     private static short slice(int n, long vector) {
         return (short) (vector >>> offset(n));
     }
 
-    /// A lookup table that selects the relevant ranks of straights and flushes.
+    /// Clear the least significant 1-bit.
+    ///
+    /// ```java
+    /// assert blsr(0b101100)
+    ///          == 0b101000;
+    /// ```
+    ///
+    /// @see <a href="https://www.felixcloutier.com/x86/blsr">blsr</a>
+    private static int blsr(int ranks) {
+        return ranks & (ranks - 1);
+    }
+
+    /// Extract the least significant 1-bit.
+    ///
+    /// ```java
+    /// assert blsr(0b101100)
+    ///          == 0b000100;
+    /// ```
+    ///
+    /// @see <a href="https://www.felixcloutier.com/x86/blsi">blsi</a>
+    private static int blsi(int ranks) {
+        return ranks & -ranks;
+    }
+
+    /// `[Js,Jh,Ad,6c,5c] -> 0b0001_0001000000000_1000000011000`
+    private static int onePair(int pairs, int kickers) {
+        return (1 << 26) | (pairs << 13) | kickers;
+    }
+
+    /// `[Qs,Qh,8d,8c,5c] -> 0b0010_0010001000000_0000000001000`
+    private static int twoPair(int pairs, int kickers) {
+        return (2 << 26) | (pairs << 13) | kickers;
+    }
+
+    /// `[Ts,Th,Td,7c,4c] -> 0b0011_0000100000000_0000000100100`
+    private static int threeOfAKind(int trips, int kickers) {
+        return (3 << 26) | (trips << 13) | kickers;
+    }
+
+    /// `[Js,Th,9d,8c,7c] -> 0b0100_0000000000000_0001000000000`
+    private static int straight(int straight) {
+        return (4 << 26) | straight;
+    }
+
+    /// `[Kd,Td,7d,5d,2d] -> 0b0101_0000000000000_0100100101001`
+    private static int flush(int flush) {
+        return (5 << 26) | flush;
+    }
+
+    /// `[5s,5h,5d,3s,3c] -> 0b0110_0000000001000_0000000000010`
+    private static int fullHouse(int trips, int pair) {
+        return (6 << 26) | (trips << 13) | pair;
+    }
+
+    /// `[Ks,Kh,Kd,Kc,8c] -> 0b0111_0100000000000_0000001000000`
+    private static int fourOfAKind(int quads, int kickers) {
+        return (7 << 26) | (quads << 13) | kickers;
+    }
+
+    /// `[Js,Ts,9s,8s,7s] -> 0b1000_0000000000000_0001000000000`
+    private static int straightFlush(int flush) {
+        return (8 << 26) | flush;
+    }
+
+    /// A lookup table for the values of straights and flushes.
     ///
     /// Nonzero values are only associated with sets of five, six, or seven ranks represented by
     /// 13-bit indices with 1-bits at the corresponding positions. A positive value always has
@@ -186,12 +275,23 @@ public final class Hand implements Iterable<Card> {
     /// index only represents ranks from a single suit, then a positive value indicates a flush
     /// and a negative value indicates a straight flush.
     ///
+    /// The index for the cards `[As,Ah,Ad,Jd,Jc,4c,2c]` looks like this:
+    ///
+    /// ```text
+    ///       ┌──ranks────┐
+    ///     0b1001000000101
+    ///       A  J      4 2
+    /// ```
+    ///
+    /// The corresponding value for that index is 0 because straights and flushes are impossible
+    /// with only four distinct ranks.
+    ///
     /// @see #values()
     private static final short[] values = values();
 
     /// Generate the lookup table.
     private static short[] values() {
-        // ranks
+        // rank masks
         int TWO = 1,
           THREE = 1 << 1,
            FOUR = 1 << 2,
@@ -206,8 +306,8 @@ public final class Hand implements Iterable<Card> {
            KING = 1 << 11,
             ACE = 1 << 12;
 
-        int max = ACE | KING | QUEEN | JACK | TEN | NINE | EIGHT; // max key
-        var values = new short[max + 1]; // 2 bytes * 0b1111111000001 = 16KB
+        int length = (ACE | KING | QUEEN | JACK | TEN | NINE | EIGHT) + 1;
+        var values = new short[length]; // 2 bytes * 0b1111111000001 = 16KB
 
         // map sets of five, six, or seven ranks to their five highest ranks
         for (int a = ACE; a >= SIX; a >>>= 1)
@@ -249,24 +349,46 @@ public final class Hand implements Iterable<Card> {
         return values;
     }
 
-    public Category category() {
-        return Category.of(this.evaluate());
-    }
-
     long mask() {
         return cards;
-    }
-
-    long ranks() {
-        return ranks;
     }
 
     int count(Suit suit) {
         return Integer.bitCount(slice(suit.ordinal(), cards));
     }
 
+    /// The category of this hand.
+    public Category category() {
+        return Category.of(this.evaluate());
+    }
+
+    /// The number of cards in this hand.
     public int size() {
         return Long.bitCount(cards);
+    }
+
+    /// True if and only if this hand contains the given `card`.
+    public boolean contains(Card card) {
+        return (cards & card.mask()) != 0;
+    }
+
+    /// A stream of the cards in this hand.
+    public Stream<Card> stream() {
+        return LongStream.iterate(
+            cards,
+            cards -> cards != 0L, // not empty
+            cards -> cards & (cards - 1L) // remove lowest
+        ).mapToObj(Card::lowest);
+    }
+
+    /// The cards that make the best five-card hand, in descending order of importance.
+    Stream<Card> sort() {
+        if (this.size() != 7) {
+            throw new IllegalStateException("partial hand");
+        }
+        int value = this.evaluate();
+        var comparator = Category.of(value).comparator(this, value);
+        return this.stream().sorted(comparator).limit(5);
     }
 
     @Override
@@ -274,28 +396,9 @@ public final class Hand implements Iterable<Card> {
         return stream().iterator();
     }
 
-    public Stream<Card> stream() {
-        return LongStream.iterate(
-            cards,
-            cards -> cards != 0L,
-            cards -> cards & cards - 1L
-        ).mapToObj(
-            cards -> Card.of(Long.numberOfTrailingZeros(cards))
-        );
-    }
-
-    public Stream<Card> sort() {
-        if (Long.bitCount(cards) != 7) {
-            throw new IllegalArgumentException("partial hand");
-        }
-        int value = evaluate();
-        var category = Category.of(value);
-        return stream().sorted(category.order(this, value)).limit(5);
-    }
-
     @Override
-    public String toString() {
-        return Card.string(this.stream());
+    public boolean equals(Object object) {
+        return object instanceof Hand hand && hand.cards == cards;
     }
 
     private static int[][] choose() {
@@ -318,17 +421,13 @@ public final class Hand implements Iterable<Card> {
         int hash = 0, k = 0;
         for (long cards = this.cards; cards != 0L; cards &= cards - 1) {
             int n = Card.ordinal(Long.numberOfTrailingZeros(cards));
-            hash += choose[k++][n];
+            hash += choose[k++][n]; // combinatorial number system
         }
         return hash;
     }
 
     @Override
-    public boolean equals(Object object) {
-        return object instanceof Hand hand && hand.cards == cards;
-    }
-
-    public boolean contains(Card card) {
-        return card.in(this.mask());
+    public String toString() {
+        return Card.string(this.stream());
     }
 }

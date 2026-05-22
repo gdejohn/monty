@@ -8,23 +8,22 @@ import java.util.HashSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class DeckTest {
+public class DeckTest {
     @Test
-    void deal() {
+    public void deal() {
         var deck = new Deck();
         var cards = new HashSet<Card>();
         for (int n = 0; n < 52; n++) {
             assertThat(deck.empty()).isFalse();
-            var card = deck.deal();
-            assertThat(cards.add(card)).isTrue();
+            assertThat(cards.add(deck.deal())).isTrue();
         }
-        assertThat(Card.all().allMatch(cards::contains)).isTrue();
+        assertThat(Card.all()).allMatch(cards::contains);
         assertThat(deck.empty()).isTrue();
-        assertThatThrownBy(deck::deal).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(deck::deal).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    void lehmerGenerator() {
+    public void lehmerGenerator() {
         int multiplier = 0x93d765dd;
         int state = multiplier;
         int period = 0;

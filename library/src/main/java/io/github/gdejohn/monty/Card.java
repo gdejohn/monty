@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import static io.github.gdejohn.monty.Card.Rank.RANKS;
+import static io.github.gdejohn.monty.Card.Suit.SUITS;
 import static java.util.Objects.checkIndex;
 import static java.util.stream.Collector.Characteristics.UNORDERED;
 import static java.util.stream.Collectors.joining;
@@ -13,58 +15,58 @@ import static java.util.stream.IntStream.range;
 public final class Card {
     /// The rank of a [card][Card].
     public static final class Rank implements Comparable<Rank> {
-        private static final Rank[] ranks = range(0, 13).mapToObj(Rank::new)
-                                                        .toArray(Rank[]::new);
+        /// Cached instances of every rank.
+        static final Rank[] RANKS = range(0, 13).mapToObj(Rank::new).toArray(Rank[]::new);
 
-        public static final Rank TWO = ranks[0],
-                               THREE = ranks[1],
-                                FOUR = ranks[2],
-                                FIVE = ranks[3],
-                                 SIX = ranks[4],
-                               SEVEN = ranks[5],
-                               EIGHT = ranks[6],
-                                NINE = ranks[7],
-                                 TEN = ranks[8],
-                                JACK = ranks[9],
-                               QUEEN = ranks[10],
-                                KING = ranks[11],
-                                 ACE = ranks[12];
+        public static final Rank TWO = RANKS[0],
+                               THREE = RANKS[1],
+                                FOUR = RANKS[2],
+                                FIVE = RANKS[3],
+                                 SIX = RANKS[4],
+                               SEVEN = RANKS[5],
+                               EIGHT = RANKS[6],
+                                NINE = RANKS[7],
+                                 TEN = RANKS[8],
+                                JACK = RANKS[9],
+                               QUEEN = RANKS[10],
+                                KING = RANKS[11],
+                                 ACE = RANKS[12];
 
-        private final byte ordinal;
+        private final int ordinal;
 
+        /// Make a rank for the given ordinal.
         private Rank(int ordinal) {
-            this.ordinal = (byte) ordinal;
+            this.ordinal = ordinal;
         }
 
-        static Rank of(Card card) {
-            return ranks[ordinal(card.offset)];
-        }
-
-        /// Every rank.
-        public static Stream<Rank> all() {
-            return Arrays.stream(ranks);
-        }
-
-        public Card of(Suit suit) {
-            return Card.of(this.ordinal, suit.ordinal);
-        }
-
+        /// Extract the rank ordinal from the given card offset.
         static int ordinal(int offset) {
             return offset & 0b1111;
         }
 
+        /// Every rank.
+        public static Stream<Rank> all() {
+            return Arrays.stream(RANKS);
+        }
+
+        /// A card with this rank and the given `suit`.
+        public Card of(Suit suit) {
+            return Card.of(this.ordinal, suit.ordinal);
+        }
+
         /// The zero-based index of this rank in ascending order.
-        public byte ordinal() {
+        public int ordinal() {
             return ordinal;
         }
 
-        public int mask() {
-            return 1 << ordinal;
+        @Override
+        public int compareTo(Rank rank) {
+            return Integer.compare(this.ordinal, rank.ordinal);
         }
 
         @Override
-        public String toString() {
-            return "23456789TJQKA".substring(ordinal, ordinal + 1);
+        public boolean equals(Object object) {
+            return object instanceof Rank rank && rank.ordinal == this.ordinal;
         }
 
         @Override
@@ -73,53 +75,53 @@ public final class Card {
         }
 
         @Override
-        public boolean equals(Object object) {
-            return object instanceof Rank rank && ordinal == rank.ordinal;
-        }
-
-        @Override
-        public int compareTo(Rank rank) {
-            return Byte.compare(ordinal, rank.ordinal);
+        public String toString() {
+            return String.valueOf("23456789TJQKA".charAt(ordinal));
         }
     }
 
     /// The suit of a [card][Card].
     public static final class Suit {
-        private static final Suit[] suits = range(0, 4).mapToObj(Suit::new)
-                                                       .toArray(Suit[]::new);
+        /// Cached instances of every suit.
+        static final Suit[] SUITS = range(0, 4).mapToObj(Suit::new).toArray(Suit[]::new);
 
-        public static final Suit CLUBS = suits[0],
-                                 DIAMONDS = suits[1],
-                                 HEARTS = suits[2],
-                                 SPADES = suits[3];
+        /// ♣
+        public static final Suit CLUBS = SUITS[0];
 
-        private final byte ordinal;
+        /// ♦
+        public static final Suit DIAMONDS = SUITS[1];
 
+        /// ♥
+        public static final Suit HEARTS = SUITS[2];
+
+        /// ♠
+        public static final Suit SPADES = SUITS[3];
+
+        private final int ordinal;
+
+        /// Make a suit for the given ordinal.
         private Suit(int ordinal) {
-            this.ordinal = (byte) ordinal;
+            this.ordinal = ordinal;
         }
 
-        static Suit of(Card card) {
-            return suits[ordinal(card.offset)];
-        }
-
-        /// Every suit.
-        public static Stream<Suit> all() {
-            return Arrays.stream(suits);
-        }
-
+        /// Extract the suit ordinal from the given card offset.
         static int ordinal(int offset) {
             return offset >>> 4;
         }
 
+        /// Every suit.
+        public static Stream<Suit> all() {
+            return Arrays.stream(SUITS);
+        }
+
         /// The zero-based index of this suit in ascending alphabetical order.
-        public byte ordinal() {
+        public int ordinal() {
             return ordinal;
         }
 
         @Override
-        public String toString() {
-            return "cdhs".substring(ordinal, ordinal + 1);
+        public boolean equals(Object object) {
+            return object instanceof Suit suit && suit.ordinal == this.ordinal;
         }
 
         @Override
@@ -128,49 +130,36 @@ public final class Card {
         }
 
         @Override
-        public boolean equals(Object object) {
-            return object instanceof Suit suit && ordinal == suit.ordinal;
+        public String toString() {
+            return String.valueOf("cdhs".charAt(ordinal));
         }
     }
 
-    /// Aligns the ranks for each suit on the 16-bit subwords in a 64-bit integer.
-    private final byte offset;
+    /// Aligns ranks grouped by suit on 16-bit subwords in a 64-bit integer.
+    final byte offset;
 
+    /// Make a card with the given rank and suit.
     private Card(Rank rank, Suit suit) {
         this.offset = (byte) (offset(suit.ordinal) + rank.ordinal);
     }
 
-    private static final Card[] cards = Rank.all().flatMap(
+    /// Cached instances of every card.
+    static final Card[] CARDS = Rank.all().flatMap(
         rank -> Suit.all().map(suit -> new Card(rank, suit))
     ).toArray(Card[]::new);
 
+    /// Make a card with the given rank ordinal and suit ordinal.
     static Card of(int rank, int suit) {
-        return cards[suit + (rank << 2)];
+        return CARDS[(rank << 2) + suit];
     }
 
-    static Card of(int offset) {
+    /// Extract the lowest card from the given bit vector.
+    static Card lowest(long cards) {
+        int offset = Long.numberOfTrailingZeros(cards);
         return Card.of(
             checkIndex(Rank.ordinal(offset), 13),
-            checkIndex(Suit.ordinal(offset), 4)
+            checkIndex(Suit.ordinal(offset),  4)
         );
-    }
-
-    private static final Collector<Card,?,Hand> COLLECTOR = Collector.of(
-        Hand::empty,
-        Hand::add,
-        (first, second) -> {
-            Hand hand = first;
-            for (Card card : second) {
-                hand = hand.add(card);
-            }
-            return hand;
-        },
-        UNORDERED
-    );
-
-    /// Accepts cards and makes a hand out of them.
-    public static Collector<Card,?,Hand> toHand() {
-        return COLLECTOR;
     }
 
     /// Every card, ascending by suit alphabetically and then by rank.
@@ -180,12 +169,32 @@ public final class Card {
         );
     }
 
+    private static final Collector<Card,?,Hand> COLLECTOR = Collector.of(
+        () -> new Object() {
+            private Hand hand = Hand.empty();
+        },
+        (result, card) -> result.hand = result.hand.add(card),
+        (first, second) -> {
+            for (Card card : second.hand) {
+                first.hand = first.hand.add(card);
+            }
+            return first;
+        },
+        result -> result.hand,
+        UNORDERED
+    );
+
+    /// Collect cards into a hand.
+    public static Collector<Card,?,Hand> toHand() {
+        return COLLECTOR;
+    }
+
     static String string(Stream<Card> cards) {
         return cards.map(Card::toString).collect(joining(",", "(", ")"));
     }
 
     static int ordinal(int offset) {
-        return Rank.ordinal(offset) + Suit.ordinal(offset) * 13;
+        return Rank.ordinal(offset) + (Suit.ordinal(offset) * 13);
     }
 
     /// Calculate offsets in 16-bit steps.
@@ -193,40 +202,33 @@ public final class Card {
         return n << 4;
     }
 
+    /// The bit vector representation of this card.
+    long mask() {
+        return 1L << offset;
+    }
+
     /// The rank of this card.
     public Rank rank() {
-        return Rank.of(this);
+        return RANKS[Rank.ordinal(offset)];
     }
 
     /// The suit of this card.
     public Suit suit() {
-        return Suit.of(this);
-    }
-
-    public byte offset() {
-        return offset;
-    }
-
-    public long mask() {
-        return 1L << offset;
-    }
-
-    @Override
-    public String toString() {
-        return rank().toString() + suit().toString();
-    }
-
-    @Override
-    public int hashCode() {
-        return ordinal(offset);
+        return SUITS[Suit.ordinal(offset)];
     }
 
     @Override
     public boolean equals(Object object) {
-        return object instanceof Card card && card.offset == offset;
+        return object instanceof Card card && card.offset == this.offset;
     }
 
-    boolean in(long cards) {
-        return (cards & this.mask()) != 0;
+    @Override
+    public int hashCode() {
+        return Card.ordinal(offset);
+    }
+
+    @Override
+    public String toString() {
+        return "%s%s".formatted(rank(), suit());
     }
 }

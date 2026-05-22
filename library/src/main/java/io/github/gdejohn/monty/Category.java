@@ -13,88 +13,94 @@ import static java.util.Comparator.comparingLong;
 
 /// The category of a [hand][Hand].
 public enum Category {
-    HIGH_CARD(5, 407, 23_294_460),
+    /// Five kickers.
+    HIGH_CARD(23_294_460, 407, 5),
 
-    ONE_PAIR(5, 1_470, 58_627_800),
+    /// Two cards with the same rank, three kickers.
+    ONE_PAIR(58_627_800, 1_470, 5),
 
-    TWO_PAIR(4, 763, 31_433_400),
+    /// Two pairs, one kicker.
+    TWO_PAIR(31_433_400, 763, 4),
 
-    THREE_OF_A_KIND(5, 575, 6_461_620),
+    /// Three cards with the same rank, two kickers.
+    THREE_OF_A_KIND(6_461_620, 575, 5),
 
-    STRAIGHT(2, 10, 6_180_020) {
+    /// Five cards with consecutive ranks, ace can play low.
+    STRAIGHT(6_180_020, 10, 2) {
         private static final long SUIT = 1L << offset(3)  // spades
                                        | 1L << offset(2)  // hearts
                                        | 1L << offset(1)  // diamonds
                                        | 1L << offset(0); // clubs
 
-        private static int straight(int high) {
+        static int straight(int high) {
             return -(high << 9) & (high << 14) - 1;
         }
 
         @Override
-        Comparator<Card> order(Hand hand, int value) {
+        Comparator<Card> comparator(Hand hand, int value) {
             return comparingLong(
-                (Card card) -> (hand.mask() & (SUIT << card.rank().ordinal())) >>> card.offset()
-            ).thenComparing(super.order(hand, straight(value & -value)));
+                (Card card) -> (hand.mask() & (SUIT << card.rank().ordinal())) >>> card.offset
+            ).thenComparing(super.comparator(hand, straight(value & -value)));
         }
     },
 
-    FLUSH(7, 1_277, 4_047_644) {
+    /// Five cards with the same suit.
+    FLUSH(4_047_644, 1_277, 7) {
         @Override
-        Comparator<Card> order(Hand hand, int value) {
+        Comparator<Card> comparator(Hand hand, int value) {
             return comparing(
                 Card::suit,
                 comparingInt(hand::count).reversed()
-            ).thenComparing(super.order(hand, value));
+            ).thenComparing(super.comparator(hand, value));
         }
     },
 
-    FULL_HOUSE(4, 156, 3_473_184),
+    /// A three-of-a-kind and a pair.
+    FULL_HOUSE(3_473_184, 156, 4),
 
-    FOUR_OF_A_KIND(5, 156, 224_848),
+    /// Four cards with the same rank, one kicker.
+    FOUR_OF_A_KIND(224_848, 156, 5),
 
-    STRAIGHT_FLUSH(2, 10, 41_584) {
+    /// Five cards with consecutive ranks and the same suit, ace can play low.
+    STRAIGHT_FLUSH(41_584, 10, 2) {
         @Override
-        Comparator<Card> order(Hand hand, int value) {
-            return FLUSH.order(hand, value).thenComparing(STRAIGHT.order(hand, value));
+        Comparator<Card> comparator(Hand hand, int value) {
+            return FLUSH.comparator(hand, value).thenComparing(STRAIGHT.comparator(hand, value));
         }
     };
 
-    static final int OFFSET = 26;
-
-    private static final Category[] categories = Category.values();
-
-    /// The number of bits needed to represent a hand in this category.
-    final int count;
-
-    /// The number of seven-card hand equivalence classes in this category.
-    final int classes;
+    private static final Category[] CATEGORIES = Category.values();
 
     /// The number of seven-card hands in this category.
     final int hands;
 
-    Category(int count, int classes, int hands) {
-        this.count = count;
+    /// The number of seven-card equivalence classes in this category.
+    final int classes;
+
+    /// The number of bits needed to represent a hand in this category.
+    final int bits;
+
+    Category(int hands, int classes, int bits) {
         this.classes = classes;
         this.hands = hands;
+        this.bits = bits;
     }
 
     /// Every category, in ascending order.
     public static Stream<Category> all() {
-        return Arrays.stream(categories);
+        return Arrays.stream(CATEGORIES);
     }
 
+    /// Extract the category from a given hand [value][Hand#evaluate()].
     static Category of(int value) {
-        return categories[value >>> Category.OFFSET];
+        return CATEGORIES[value >>> 26];
     }
 
-    Comparator<Card> order(Hand hand, int value) {
-        int SIGNIFICANCE = 1 << 13 | 1;
+    Comparator<Card> comparator(Hand hand, int value) {
+        int SIGNIFICANCE = (1 << 13) | 1;
         return comparing(
             Card::rank,
-            comparingInt(
-                rank -> value & SIGNIFICANCE << rank.ordinal()
-            )
+            comparingInt(rank -> value & (SIGNIFICANCE << rank.ordinal()))
         ).thenComparing(Card::suit, comparingInt(Suit::ordinal)).reversed();
     }
 }

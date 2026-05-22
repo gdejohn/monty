@@ -1,9 +1,4 @@
 /env -module-path library/target/classes -add-module io.github.gdejohn.monty
-import io.github.gdejohn.monty.*;
-import static io.github.gdejohn.monty.Card.*;
+import module io.github.gdejohn.monty;
 import static io.github.gdejohn.monty.Card.Rank.*;
 import static io.github.gdejohn.monty.Card.Suit.*;
-import static io.github.gdejohn.monty.Category.*;
-import static io.github.gdejohn.monty.Deck.*;
-import static io.github.gdejohn.monty.Hand.*;
-import static io.github.gdejohn.monty.Monty.*;
