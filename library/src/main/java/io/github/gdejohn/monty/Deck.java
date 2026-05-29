@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import static io.github.gdejohn.monty.Deck.Generator.FastBoundedGenerator.GENERATOR;
 
-/// A lazy deck of [cards][Card] for interleaved shuffling and dealing.
+/// A lazy deck of [cards][Card] that interleaves shuffling and dealing.
 public final class Deck {
     /// A splittable bounded random number generator.
     sealed interface Generator {
@@ -86,22 +86,22 @@ public final class Deck {
         shuffle();
     }
 
-    /// Create a new deck with the given `rng` and `cards`.
+    /// Make a new deck with the given `rng` and `cards`.
     private Deck(@Nullable SplittableGenerator rng, Stream<Card> cards) {
         this(rng != null ? new DelegatingGenerator(rng) : GENERATOR.split(), cards);
     }
 
-    /// Create a new deck with the given `rng` and dead cards excluded.
+    /// Make a new deck with the given `rng` and dead cards excluded.
     Deck(@Nullable SplittableGenerator rng, Predicate<Card> board, Predicate<Card> pocket) {
         this(rng, Card.all().filter(board.or(pocket).negate()));
     }
 
-    /// Create a new deck with the given `rng` and no dead cards.
+    /// Make a new deck with the given `rng` and no dead cards.
     public Deck(SplittableGenerator rng) {
         this(rng, Card.all());
     }
 
-    /// Create a deck with a default source of randomness and no dead cards.
+    /// Make a deck with a default source of randomness and no dead cards.
     public Deck() {
         this((SplittableGenerator) null, Card.all());
     }

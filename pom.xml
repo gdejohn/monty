@@ -14,7 +14,7 @@
     </modules>
 
     <name>monty</name>
-    <description>Library for estimating equity and expected value in Texas hold 'em</description>
+    <description>library for estimating equity and expected value in Texas hold 'em</description>
     <url>https://github.com/gdejohn/monty</url>
     <developers>
         <developer>

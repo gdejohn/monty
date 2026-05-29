@@ -100,8 +100,7 @@ public final class Hand implements Iterable<Card> {
 
     /// Make a hand containing the given `cards`.
     ///
-    /// @throws IllegalArgumentException if there are more than seven `cards`
-    /// @throws IllegalArgumentException if there are duplicate `cards`
+    /// @throws IllegalArgumentException if there are duplicates or more than seven cards
     public static Hand of(Card... cards) {
         if (cards.length > 7) {
             throw new IllegalArgumentException(
@@ -172,7 +171,7 @@ public final class Hand implements Iterable<Card> {
                hash = (( (-blsr(blsr(pairs))              ^     -pairs ) >>> -4) &  0b1000)
                     | ((-(      blsr(trips)               | blsr(pairs)) >>> -3) &  0b0100)
                     | ((  (   flush | -flush     ) >>  -2 |     -trips   >>> -2) & -0b0010)
-                    | ((  (straight & (flush - 1)) >>> -4 |     -quads   >>> -1) &  0b1111);
+                    |  (  (straight & (flush - 1)) >>> -4 |     -quads   >>> -1);
         return switch (hash) {
             case  0b1000 -> onePair(pairs, blsr(blsr(kickers)));
             case  0b1100 -> twoPair(pairs, blsr(blsr(kickers)));
@@ -184,8 +183,8 @@ public final class Hand implements Iterable<Card> {
             case  0b0001 -> fourOfAKind(quads, blsr(blsr(kickers)));
             case  0b1001 -> fourOfAKind(quads, blsr(pairs | kickers));
             case  0b0011 -> fourOfAKind(quads, trips);
-            case -0b0010 -> flush(flush);
             case  0b1111 -> straight(~straight);
+            case -0b0010 -> flush(flush);
             case -0b0001 -> straightFlush(~flush);
             case  0b0000 -> blsr(blsr(kickers)); // high card
             default -> throw new AssertionError("invalid hand");

@@ -158,7 +158,7 @@ public final class Card {
         int offset = Long.numberOfTrailingZeros(cards);
         return Card.of(
             checkIndex(Rank.ordinal(offset), 13),
-            checkIndex(Suit.ordinal(offset),  4)
+            checkIndex(Suit.ordinal(offset), 4)
         );
     }
 
