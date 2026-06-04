@@ -42,9 +42,8 @@ assert Math.abs(0.52279d - equity.estimate()) < error;
 The expected value of a call is the ratio of your estimated winnings to the size of the raise:
 
 ```java
-var pot = 100;
-var raise = 50;
-
+int pot = 100;
+int raise = 50;
 assert equity.expectedValue(pot, raise) > 1.0d;
 ```
 
