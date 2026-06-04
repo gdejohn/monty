@@ -102,10 +102,6 @@ per second per core (less than 100 CPU cycles per hand).
 | Monty.evaluateRandom:gc.alloc.rate             | thrpt |        0.001 | ±      0.001 |    MB/sec |
 | Monty.evaluateRandom:gc.alloc.rate.norm        | thrpt |       ≈ 10⁻⁵ |              |      B/op |
 | Monty.evaluateRandom:gc.count                  | thrpt |          ≈ 0 |              |    counts |
-| Monty.evaluateRandom:iTLB-load-misses:u        | thrpt |       ≈ 10⁻⁵ |              |      #/op |
-| Monty.evaluateRandom:iTLB-loads:u              | thrpt |       ≈ 10⁻⁴ |              |      #/op |
-| Monty.evaluateRandom:instructions:u            | thrpt |      238.167 | ±      0.151 |      #/op |
-| Monty.evaluateRandom:stalled-cycles-frontend:u | thrpt |        9.308 | ±      3.170 |      #/op |
 
 [1]: https://arxiv.org/abs/1805.10941
 [2]: https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/random/RandomGenerator.SplittableGenerator.html
