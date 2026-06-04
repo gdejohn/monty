@@ -32,7 +32,8 @@ Equity equity = monty.equity(error, confidence);
 ```
 
 Your equity is the fraction of the pot that you won on average across every trial, which converges
-to the true average across every possible outcome:
+to the true average across every possible outcome. The magnitude of the difference between the true
+equity and the estimate is less than the given `error` with the given `confidence` level.
 
 ```java
 assert Math.abs(0.52279d - equity.estimate()) < error;
