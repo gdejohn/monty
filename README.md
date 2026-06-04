@@ -33,7 +33,7 @@ Equity equity = monty.equity(error, confidence);
 
 Your equity is the fraction of the pot that you won on average across every trial, which converges
 to the true average across every possible outcome. The magnitude of the difference between the true
-equity and the estimate is less than the given `error` with the given `confidence` level.
+equity and the estimate is less than the given `error` with the given `confidence` level:
 
 ```java
 assert Math.abs(0.52279d - equity.estimate()) < error;
@@ -84,17 +84,21 @@ per second per core (less than 100 CPU cycles per hand).
 | Benchmark                                      |  Mode |        Score |        Error |     Units |
 |:-----------------------------------------------|------:|-------------:|-------------:|----------:|
 | Monty.evaluateRandom                           | thrpt | 61340979.020 | ± 398049.638 |     ops/s |
-| Monty.evaluateRandom:CPI                       | thrpt |        0.390 | ±      0.014 | clks/insn |
-| Monty.evaluateRandom:IPC                       | thrpt |        2.564 | ±      0.093 | insns/clk |
-| Monty.evaluateRandom:L1-dcache-load-misses:u   | thrpt |        0.001 | ±      0.001 |      #/op |
-| Monty.evaluateRandom:L1-dcache-loads:u         | thrpt |       56.644 | ±      0.174 |      #/op |
-| Monty.evaluateRandom:L1-icache-load-misses:u   | thrpt |        0.001 | ±      0.002 |      #/op |
-| Monty.evaluateRandom:L1-icache-loads:u         | thrpt |        0.008 | ±      0.022 |      #/op |
-| Monty.evaluateRandom:branch-misses:u           | thrpt |        0.742 | ±      0.005 |      #/op |
-| Monty.evaluateRandom:branches:u                | thrpt |        9.565 | ±      0.002 |      #/op |
+| Monty.evaluateRandom:instructions:u            | thrpt |      238.167 | ±      0.151 |      #/op |
 | Monty.evaluateRandom:cycles:u                  | thrpt |       92.897 | ±      3.329 |      #/op |
-| Monty.evaluateRandom:dTLB-load-misses:u        | thrpt |       ≈ 10⁻⁵ |              |      #/op |
+| Monty.evaluateRandom:stalled-cycles-frontend:u | thrpt |        9.308 | ±      3.170 |      #/op |
+| Monty.evaluateRandom:IPC                       | thrpt |        2.564 | ±      0.093 | insns/clk |
+| Monty.evaluateRandom:CPI                       | thrpt |        0.390 | ±      0.014 | clks/insn |
+| Monty.evaluateRandom:branches:u                | thrpt |        9.565 | ±      0.002 |      #/op |
+| Monty.evaluateRandom:branch-misses:u           | thrpt |        0.742 | ±      0.005 |      #/op |
+| Monty.evaluateRandom:L1-dcache-loads:u         | thrpt |       56.644 | ±      0.174 |      #/op |
+| Monty.evaluateRandom:L1-dcache-load-misses:u   | thrpt |        0.001 | ±      0.001 |      #/op |
+| Monty.evaluateRandom:L1-icache-loads:u         | thrpt |        0.008 | ±      0.022 |      #/op |
+| Monty.evaluateRandom:L1-icache-load-misses:u   | thrpt |        0.001 | ±      0.002 |      #/op |
 | Monty.evaluateRandom:dTLB-loads:u              | thrpt |       ≈ 10⁻⁴ |              |      #/op |
+| Monty.evaluateRandom:dTLB-load-misses:u        | thrpt |       ≈ 10⁻⁵ |              |      #/op |
+| Monty.evaluateRandom:iTLB-loads:u              | thrpt |       ≈ 10⁻⁴ |              |      #/op |
+| Monty.evaluateRandom:iTLB-load-misses:u        | thrpt |       ≈ 10⁻⁵ |              |      #/op |
 | Monty.evaluateRandom:gc.alloc.rate             | thrpt |        0.001 | ±      0.001 |    MB/sec |
 | Monty.evaluateRandom:gc.alloc.rate.norm        | thrpt |       ≈ 10⁻⁵ |              |      B/op |
 | Monty.evaluateRandom:gc.count                  | thrpt |          ≈ 0 |              |    counts |
