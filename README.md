@@ -64,9 +64,9 @@ The evaluator directly computes the value of the best five-card hand made from s
 (without checking each of the 21 combinations) using bitwise logical operators, shifts, some
 integer arithmetic (no multiplication, division, or modulo), and five reads from a 16KB lookup
 table (comfortably fits in L1 cache). It is garbage free, does not use the standard library,
-performs no pairwise card comparisons, and has no loops or conditional statements. The only branch
-is a switch expression that compiles to a tableswitch, indexed by a hash value to flatten what
-would otherwise be a dense tree of unpredictable conditional branches into one small jump table.
+performs no pairwise card comparisons, and has no loops or conditional statements. The only
+unpredictable branch is a tableswitch, indexed by a hash value to flatten what would otherwise be a
+dense tree of unpredictable conditional branches into one small jump table.
 
 Partial evaluations are represented with a persistent data structure (two `long` bit vectors in a
 value class, built up one card at a time) that can be reused in the evaluation of each player's
