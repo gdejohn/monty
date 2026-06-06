@@ -173,6 +173,7 @@ public final class Hand implements Iterable<Card> {
                     | ((  (   flush | -flush     ) >>  -2 |     -trips   >>> -2) & -0b0010)
                     |  (  (straight & (flush - 1)) >>> -4 |     -quads   >>> -1);
         return switch (hash) {
+            case  0b0000 -> highCard(blsr(blsr(kickers)));
             case  0b1000 -> onePair(pairs, blsr(blsr(kickers)));
             case  0b1100 -> twoPair(pairs, blsr(blsr(kickers)));
             case  0b0100 -> twoPair(blsr(pairs), blsr(blsi(pairs) | kickers));
@@ -186,8 +187,7 @@ public final class Hand implements Iterable<Card> {
             case  0b1111 -> straight(~straight);
             case -0b0010 -> flush(flush);
             case -0b0001 -> straightFlush(~flush);
-            case  0b0000 -> blsr(blsr(kickers)); // high card
-            default -> throw new AssertionError("invalid hand");
+            default -> throw new RuntimeException();
         };
     }
 

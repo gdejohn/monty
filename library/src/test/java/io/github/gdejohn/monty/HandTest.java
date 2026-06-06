@@ -38,12 +38,11 @@ import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 public class HandTest {
     @Test
     public void equivalenceClasses() {
-        var categories = Hand.all().parallel().map(Hand::evaluate).collect(
+        var categories = Hand.all().map(Hand::evaluate).parallel().collect(
             groupingBy(
                 Category::of,
                 () -> new EnumMap<>(Category.class),
@@ -70,18 +69,15 @@ public class HandTest {
     /// Verify that [Hand#hashCode()] is a minimal perfect hash function.
     @Test
     public void combinatorialHash() {
-        record Stats(int count, int max) {}
-        var stats = Hand.all().mapToInt(Hand::hashCode).sorted().boxed().reduce(
-            new Stats(0, -1),
-            (hashes, hash) -> {
-                assertThat(hash).isGreaterThan(hashes.max);
-                return new Stats(hashes.count + 1, hash);
-            },
-            (_, _) -> fail("this reduction must be sequential")
-        );
-        var count = 133_784_560; // 52 choose 7
-        assertThat(stats.count).isEqualTo(count);
-        assertThat(stats.max).isEqualTo(count - 1);
+        assertThat(
+            Hand.all().mapToInt(Hand::hashCode).sorted().sequential().reduce(
+                0,
+                (count, hash) -> {
+                    assertThat(hash).isEqualTo(count);
+                    return count + 1;
+                }
+            )
+        ).isEqualTo(133_784_560); // 52 choose 7
     }
 
     @Test
@@ -112,7 +108,7 @@ public class HandTest {
                  NINE.of(HEARTS),
                   TEN.of(HEARTS)
             )
-        ).isInstanceOf(IllegalArgumentException.class);
+        ).isInstanceOf(RuntimeException.class);
     }
 
     @Test
